@@ -1,3 +1,4 @@
 *.pkl
 *.pickle
 External Repositories/
+.DS_Store
