@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "../../../../LocalCode/SGN"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"java.format.settings.url": "redhat.java",
+		"launch": {
+			"configurations": [],
+			"compounds": []
+		}
+	}
+}
