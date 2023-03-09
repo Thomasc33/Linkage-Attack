@@ -1,8 +1,10 @@
 # Motion-Privacy
- 
+
+TBI
+
 # Acknowledgements
 
-This code relies on multiple previous works as listed below:
+This code relies on multiple previous works as listed below: (WIP)
 
 SGN ([Code](https://github.com/microsoft/SGN)) ([Paper](https://arxiv.org/pdf/1904.01189.pdf))
 
