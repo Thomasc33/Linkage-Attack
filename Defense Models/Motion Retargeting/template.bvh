@@ -1,0 +1,107 @@
+HIERARCHY
+ROOT Hip
+{
+	OFFSET 0.000000 0.000000 0.000000
+	CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+	JOINT SpineNavel
+	{
+		OFFSET 0.000000 0.103756 0.000000
+		CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+		JOINT SpineChest
+		{
+			OFFSET 0.000000 0.131224 0.000000
+			CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+			JOINT Neck
+			{
+				OFFSET 0.000000 0.131224 0.000000
+				CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+				JOINT Head
+				{
+					OFFSET 0.000000 0.069000 0.000000
+					CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+				}
+			}
+			JOINT ShoulderRight
+			{
+				OFFSET -0.075000 0.105000 0.000000
+				CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+				JOINT ElbowRight
+				{
+					OFFSET 0.000000 -0.350000 0.000000
+					CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+					JOINT WristRight
+					{
+						OFFSET 0.000000 -0.300000 0.000000
+						CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+						JOINT HandRight
+						{
+							OFFSET 0.000000 -0.050000 0.000000
+							CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+						}
+					}
+				}
+			}
+			JOINT ShoulderLeft
+			{
+				OFFSET 0.075000 0.105000 0.000000
+				CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+				JOINT ElbowLeft
+				{
+					OFFSET 0.000000 -0.350000 0.000000
+					CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+					JOINT WristLeft
+					{
+						OFFSET 0.000000 -0.300000 0.000000
+						CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+						JOINT HandLeft
+						{
+							OFFSET 0.000000 -0.050000 0.000000
+							CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+						}
+					}
+				}
+			}
+		}
+		JOINT HipRight
+		{
+			OFFSET -0.075000 0.000000 0.000000
+			CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+			JOINT KneeRight
+			{
+				OFFSET 0.000000 -0.340000 0.000000
+				CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+				JOINT AnkleRight
+				{
+					OFFSET 0.000000 -0.330000 0.000000
+					CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+					JOINT FootRight
+					{
+						OFFSET 0.000000 -0.050000 0.000000
+						CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+					}
+				}
+			}
+		}
+		JOINT HipRight
+		{
+			OFFSET -0.100000 -0.050000 -0.000000
+			CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+			JOINT KneeRight
+			{
+				OFFSET 0.000000 -0.340000 0.000000
+				CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+				JOINT AnkleRight
+				{
+					OFFSET -0.000000 -0.316000 0.000000
+					CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+					JOINT FootRight
+					{
+						OFFSET -0.000000 -0.300000 0.000000
+						CHANNELS 6 Xposition Yposition Zposition Xrotation Yrotation Zrotation
+					}
+				}
+			}
+		}
+	}
+}
+MOTION

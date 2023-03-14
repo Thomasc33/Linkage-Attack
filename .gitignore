@@ -2,3 +2,4 @@
 *.pickle
 External Repositories/
 .DS_Store
+__pycache__/
