@@ -71,13 +71,10 @@ class SGN(nn.Module):
         input = input + tem1
         input = self.cnn(input)
 
-        # Break Here for Linkage Attack
-        
-
-        # Classification
+        # Formerly classification, now just taking an embedding
         output = self.maxpool(input)
         output = torch.flatten(output, 1)
-        output = self.fc(output)
+        # output = self.fc(output)
 
         return output
 
