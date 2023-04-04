@@ -27,7 +27,7 @@ class NTUDataset(Dataset):
         return len(self.y)
 
     def __getitem__(self, index):
-        return [self.x[index], int(self.y[index])]
+        return [self.x[index], self.y[index]]
 
 
 class NTUDataLoaders(object):

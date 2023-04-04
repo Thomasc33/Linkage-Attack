@@ -19,10 +19,16 @@ def make_dir(dataset):
 
     return output_dir
 
-def get_num_classes(dataset):
-    if dataset == 'NTU':
+def get_num_classes(dataset, case):
+    if case == 0: 
         return 2
-    elif dataset == 'NTU120':
+    elif case == 1:
+        return 120
+    else:
         return 2
+    # if dataset == 'NTU':
+    #     return 2
+    # elif dataset == 'NTU120':
+    #     return 2
 
     
