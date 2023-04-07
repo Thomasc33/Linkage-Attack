@@ -1,0 +1,35 @@
+Epochs:   1%|          | 1/120 [1:50:40<219:30:23, 6640.53s/it]
+Epoch 1, Validation Loss: 0.3250831067562103, Validation Accuracy: 1.0
+New best validation loss, checkpoint saved
+Epochs:   2%|▏         | 2/120 [3:37:16<212:56:56, 6496.75s/it]
+Epoch 2, Validation Loss: 0.32508301734924316, Validation Accuracy: 1.0
+New best validation loss, checkpoint saved
+Epochs:   2%|▎         | 3/120 [5:11:42<198:49:06, 6117.49s/it]
+Epoch 3, Validation Loss: 0.32508307695388794, Validation Accuracy: 1.0
+Epochs:   3%|▎         | 4/120 [6:50:11<194:27:46, 6035.05s/it]
+Epoch 4, Validation Loss: 0.3250829577445984, Validation Accuracy: 1.0
+New best validation loss, checkpoint saved
+Epochs:   4%|▍         | 5/120 [8:18:23<184:13:32, 5767.07s/it]
+Epoch 5, Validation Loss: 0.3250829577445984, Validation Accuracy: 1.0
+Epochs:   5%|▌         | 6/120 [9:43:35<175:34:22, 5544.41s/it]
+Epoch 6, Validation Loss: 0.32508304715156555, Validation Accuracy: 1.0
+Epochs:   6%|▌         | 7/120 [11:22:26<178:00:14, 5670.93s/it]
+Epoch 7, Validation Loss: 0.3250829875469208, Validation Accuracy: 1.0
+Epochs:   7%|▋         | 8/120 [12:49:24<171:56:04, 5526.47s/it]
+Epoch 8, Validation Loss: 0.32508304715156555, Validation Accuracy: 1.0
+Epochs:   8%|▊         | 9/120 [14:12:36<165:14:55, 5359.42s/it]
+Epoch 9, Validation Loss: 0.32508301734924316, Validation Accuracy: 1.0
+Epochs:   8%|▊         | 10/120 [15:35:34<160:10:05, 5241.87s/it]
+Epoch 10, Validation Loss: 0.32508325576782227, Validation Accuracy: 1.0
+Epochs:   9%|▉         | 11/120 [16:58:37<156:18:29, 5162.47s/it]
+Epoch 11, Validation Loss: 0.3250829577445984, Validation Accuracy: 1.0
+Epochs:  10%|█         | 12/120 [18:21:58<153:24:20, 5113.52s/it]
+Epoch 12, Validation Loss: 0.325082927942276, Validation Accuracy: 1.0
+New best validation loss, checkpoint saved
+Epochs:  11%|█         | 13/120 [19:45:21<150:59:02, 5079.84s/it]
+Epoch 13, Validation Loss: 0.32508301734924316, Validation Accuracy: 1.0
+Epochs:  12%|█▏        | 14/120 [21:08:47<148:54:57, 5057.52s/it]
+Epoch 14, Validation Loss: 0.32508301734924316, Validation Accuracy: 1.0
+Epochs:  12%|█▎        | 15/120 [22:36:42<149:25:35, 5123.20s/it]
+Epoch 15, Validation Loss: 0.32508304715156555, Validation Accuracy: 1.0
+Epochs:  12%|█▎        | 15/120 [23:05:48<161:40:41, 5543.25s/it]
