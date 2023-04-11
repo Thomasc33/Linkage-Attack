@@ -1,6 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 from torch import nn
+from torch.nn import init
 import torch
 import math
 
@@ -28,7 +29,6 @@ class SGN(nn.Module):
         self.gcn1 = gcn_spa(self.dim1 // 2, self.dim1 // 2, bias=bias)
         self.gcn2 = gcn_spa(self.dim1 // 2, self.dim1, bias=bias)
         self.gcn3 = gcn_spa(self.dim1, self.dim1, bias=bias)
-        self.fc = nn.Linear(self.dim1 * 2, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -38,6 +38,13 @@ class SGN(nn.Module):
         nn.init.constant_(self.gcn1.w.cnn.weight, 0)
         nn.init.constant_(self.gcn2.w.cnn.weight, 0)
         nn.init.constant_(self.gcn3.w.cnn.weight, 0)
+
+        # Initialize weights for local layer
+        for layer in [self.cnn.cnn1, self.cnn.cnn2]:
+            init.xavier_normal_(layer.weight)
+            if layer.bias is not None:
+                init.constant_(layer.bias, 0)
+
 
     def forward(self, input):
         # Dynamic Representation
@@ -118,9 +125,18 @@ class embed(nn.Module):
                 nn.ReLU(),
             )
 
+        self._initialize_weights()
+
     def forward(self, x):
         x = self.cnn(x)
         return x
+    
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
 
 
 class cnn1x1(nn.Module):
