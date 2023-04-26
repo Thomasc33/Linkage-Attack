@@ -1,0 +1,66 @@
+Epoch 1
+Training Loss: 0.6256150803089142, Training Accuracy: 0.645, Train Precision: 0.6254325259515571, Train Recall: 0.723, Train F1: 0.6706864564007421
+Validation Loss: 0.6154971607651472, Validation Accuracy: 0.6473794063079777, Validation Precision: 0.6026655896607431, Validation Recall: 0.8651437847866419, Validation F1: 0.7104361074081127
+New best validation loss, checkpoint saved
+Epoch 2
+Training Loss: 0.6130460545539856, Training Accuracy: 0.6588, Train Precision: 0.6272232014100304, Train Recall: 0.7829, Train F1: 0.6964682857397029
+Validation Loss: 0.6189996385065656, Validation Accuracy: 0.6441326530612245, Validation Precision: 0.5986038394415357, Validation Recall: 0.875, Validation F1: 0.7108808290155441
+Epoch 3
+Training Loss: 0.6148735684871673, Training Accuracy: 0.65935, Train Precision: 0.6256802586954807, Train Recall: 0.7933, Train F1: 0.6995899290092156
+Validation Loss: 0.6114631353813553, Validation Accuracy: 0.657293599257885, Validation Precision: 0.6307721970500337, Validation Recall: 0.7586966604823747, Validation F1: 0.688845607201137
+New best validation loss, checkpoint saved
+Epoch 4
+Training Loss: 0.6118374734401703, Training Accuracy: 0.6616, Train Precision: 0.6267053473420103, Train Recall: 0.7993, Train F1: 0.702557792036565
+Validation Loss: 0.6217406115085163, Validation Accuracy: 0.6465097402597403, Validation Precision: 0.5966791644349223, Validation Recall: 0.9042207792207793, Validation F1: 0.7189415940626008
+Epoch 5
+Training Loss: 0.6053173697471619, Training Accuracy: 0.6681, Train Precision: 0.6313076081862209, Train Recall: 0.8082, Train F1: 0.708885185510043
+Validation Loss: 0.5986557270025278, Validation Accuracy: 0.6583951762523191, Validation Precision: 0.6133609958506224, Validation Recall: 0.8570269016697588, Validation F1: 0.7150043532939925
+New best validation loss, checkpoint saved
+Epoch 6
+Training Loss: 0.6062008225440979, Training Accuracy: 0.6655, Train Precision: 0.6296412345292183, Train Recall: 0.8038, Train F1: 0.7061407361855399
+Validation Loss: 0.6038350775312625, Validation Accuracy: 0.6538729128014842, Validation Precision: 0.6048846032247865, Validation Recall: 0.8874072356215214, Validation F1: 0.7194021432600114
+Epoch 7
+Training Loss: 0.6072273033618927, Training Accuracy: 0.66645, Train Precision: 0.6302323761833972, Train Recall: 0.8055, Train F1: 0.7071682542469603
+Validation Loss: 0.606934871434723, Validation Accuracy: 0.6548005565862709, Validation Precision: 0.6048374430658081, Validation Recall: 0.8930890538033395, Validation F1: 0.7212285794550051
+Epoch 8
+Training Loss: 0.6081250477790833, Training Accuracy: 0.66535, Train Precision: 0.6280095997522644, Train Recall: 0.8112, Train F1: 0.7079460662390366
+Validation Loss: 0.6092665601860393, Validation Accuracy: 0.6524814471243042, Validation Precision: 0.6030887425525243, Validation Recall: 0.8920454545454546, Validation F1: 0.7196445275958839
+Epoch 9
+Training Loss: 0.607876618528366, Training Accuracy: 0.6671, Train Precision: 0.6304246019356853, Train Recall: 0.8077, Train F1: 0.7081360687357531
+Validation Loss: 0.6120911172568687, Validation Accuracy: 0.6466836734693877, Validation Precision: 0.5993091537132987, Validation Recall: 0.8852040816326531, Validation F1: 0.7147270854788876
+Epoch 10
+Training Loss: 0.607295592212677, Training Accuracy: 0.6631, Train Precision: 0.6267682263329706, Train Recall: 0.8064, Train F1: 0.7053266859092101
+Validation Loss: 0.6145487218708187, Validation Accuracy: 0.649582560296846, Validation Precision: 0.5970216606498195, Validation Recall: 0.9204545454545454, Validation F1: 0.7242700729927007
+Epoch 11
+Training Loss: 0.607113445520401, Training Accuracy: 0.6657, Train Precision: 0.6266819571865443, Train Recall: 0.8197, Train F1: 0.710311958405546
+Validation Loss: 0.6017963076787889, Validation Accuracy: 0.6574095547309833, Validation Precision: 0.6095376422173808, Validation Recall: 0.8759276437847866, Validation F1: 0.7188466479516582
+Epoch 00011: reducing learning rate of group 0 to 1.0000e-04.
+Epoch 12
+Training Loss: 0.6029448174476624, Training Accuracy: 0.66735, Train Precision: 0.6308955807587016, Train Recall: 0.8066, Train F1: 0.7080096554750932
+Validation Loss: 0.598003562284091, Validation Accuracy: 0.6568877551020408, Validation Precision: 0.6071768060836502, Validation Recall: 0.8887987012987013, Validation F1: 0.7214796686746988
+New best validation loss, checkpoint saved
+Epoch 13
+Training Loss: 0.6038869212627411, Training Accuracy: 0.66945, Train Precision: 0.6312650089085134, Train Recall: 0.8149, Train F1: 0.7114234580295953
+Validation Loss: 0.6077661768071948, Validation Accuracy: 0.6535250463821892, Validation Precision: 0.601176830200214, Validation Recall: 0.912221706864564, Validation F1: 0.7247351450944265
+Epoch 14
+Training Loss: 0.6027784801006317, Training Accuracy: 0.66685, Train Precision: 0.6274150439098892, Train Recall: 0.8216, Train F1: 0.7114959948040701
+Validation Loss: 0.609842409008288, Validation Accuracy: 0.6516117810760668, Validation Precision: 0.6012075238021519, Validation Recall: 0.900626159554731, Validation F1: 0.7210694889291185
+Epoch 15
+Training Loss: 0.6003041882038116, Training Accuracy: 0.6682, Train Precision: 0.628652286981796, Train Recall: 0.8219, Train F1: 0.7124035711190084
+Validation Loss: 0.6029047602735778, Validation Accuracy: 0.6565398886827458, Validation Precision: 0.6065172794697806, Validation Recall: 0.8913497217068646, Validation F1: 0.7218518170720255
+Epoch 16
+Training Loss: 0.6011901089668273, Training Accuracy: 0.6681, Train Precision: 0.6302696838189709, Train Recall: 0.8133, Train F1: 0.7101816276632903
+Validation Loss: 0.6021588004586427, Validation Accuracy: 0.656597866419295, Validation Precision: 0.6056646584774275, Validation Recall: 0.8976113172541744, Validation F1: 0.723288951179631
+Epoch 17
+Training Loss: 0.6040383526325226, Training Accuracy: 0.66745, Train Precision: 0.6285604606525912, Train Recall: 0.8187, Train F1: 0.7111400651465798
+Validation Loss: 0.6008979376813255, Validation Accuracy: 0.6554962894248608, Validation Precision: 0.6060414360272023, Validation Recall: 0.8886827458256029, Validation F1: 0.7206393982134461
+Epoch 18
+Training Loss: 0.6007309865474701, Training Accuracy: 0.67045, Train Precision: 0.6306030189257528, Train Recall: 0.823, Train F1: 0.7140688039564443
+Validation Loss: 0.6002032586506435, Validation Accuracy: 0.6601924860853432, Validation Precision: 0.6089253331230782, Validation Recall: 0.8955241187384044, Validation F1: 0.7249260806307787
+Epoch 00018: reducing learning rate of group 0 to 1.0000e-05.
+Epoch 19
+Training Loss: 0.6015801071643829, Training Accuracy: 0.6688, Train Precision: 0.6311169799596085, Train Recall: 0.8125, Train F1: 0.7104135699921307
+Validation Loss: 0.6015953992204897, Validation Accuracy: 0.6582212430426716, Validation Precision: 0.6062611946110116, Validation Recall: 0.9027133580705009, Validation F1: 0.7253668763102726
+Epoch 20
+Training Loss: 0.599435746049881, Training Accuracy: 0.6704, Train Precision: 0.6325657382915824, Train Recall: 0.8131, Train F1: 0.7115603395466876
+Validation Loss: 0.5991216885800265, Validation Accuracy: 0.6564819109461967, Validation Precision: 0.6055038699085294, Validation Recall: 0.8980751391465677, Validation F1: 0.7233247723558254

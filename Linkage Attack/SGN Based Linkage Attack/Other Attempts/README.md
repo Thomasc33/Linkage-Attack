@@ -1,0 +1,1 @@
+These were other attempts archived from attempting to get the main model to work. It is recommended to move these files into the parent directory so that the required files are in the same path. Or add `os.chdir("..")` to the file before requiring a file from parent folder
