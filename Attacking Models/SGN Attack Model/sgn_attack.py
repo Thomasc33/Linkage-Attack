@@ -103,7 +103,6 @@ def test(test_loader, model, checkpoint, lable_path, pred_path):
     print('Test: accuracy {:.3f}, time: {:.2f}s'
           .format(acces.avg, time.time() - t_start))
 
-
 def accuracy(output, target):
     batch_size = target.size(0)
     _, pred = output.topk(1, 1, True, True)
@@ -112,16 +111,6 @@ def accuracy(output, target):
     correct = pred.eq(target.view(1, -1).expand_as(pred))
     correct = correct.view(-1).float().sum(0, keepdim=True)
     return correct.mul_(100.0 / batch_size)
-
-
-def get_n_params(model):
-    pp = 0
-    for p in list(model.parameters()):
-        nn = 1
-        for s in list(p.size()):
-            nn = nn*s
-        pp += nn
-    return pp
 
 def load_data(case):
     if case == 0:
@@ -173,7 +162,16 @@ def anonymizer_to_sgd(t, max_frames=300):
         
     return X
 
-def gen_labels(Actors, case):
+def gen_labels(Actors, case, key_is_file=False):
+    if key_is_file:
+        if case == 0:
+            for file in Actors:
+                Actors[file[8:12]] = Actors[file]
+                del Actors[file]
+        elif case == 1:
+            for file in Actors:
+                Actors[file[16:20]] = Actors[file]
+                del Actors[file]
     if case == 0:
         # Load the Genders
         Genders = pd.read_csv(args.labels)
@@ -255,14 +253,10 @@ class LabelSmoothingLoss(nn.Module):
 def to_categorical(y):
     return np.array([np.array([1, 0]) if i == 0 else np.array([0, 1]) for i in y])
 
-def main(train_x, train_y, test_x, test_y, val_x, val_y, case):
-    num_classes = get_num_classes(dataset, case)
+def main(train_x, train_y, test_x, test_y, val_x, val_y, case, num_classes = None):
+    if num_classes is None:
+        num_classes = get_num_classes(dataset, case)
     model = SGN(num_classes, dataset, seg, batch_size, 0)
-
-    total = get_n_params(model)
-    # print(model)
-    print('The number of parameters: ', total)
-    print('The modes is:', network)
 
     if torch.cuda.is_available():
         print('It is using GPU!')
@@ -292,37 +286,105 @@ def main(train_x, train_y, test_x, test_y, val_x, val_y, case):
     model = model.cuda()
     test(test_loader, model, checkpoint, lable_path, pred_path)
 
+# Temp for evaluation
+data = [
+    'Classical MR 1-60',
+    'Classical MR 61-120',
+    'Clasical MR 61-120, No Overlap',
+    'Moon UNet 1-60',
+    'Moon UNet 61-120',
+    'Moon UNet 61-120, No Overlap',
+    'Moon ResNet 1-60',
+    'Moon ResNet 61-120',
+    'Moon ResNet  61-120, No Overlap',
+]
+    
+num_classes = [
+    40,
+    69,
+    66,
+    40,
+    69,
+    66,
+    40,
+    69,
+    66
+]
+
 if __name__ == '__main__':
-    Actors = load_data(0)
-    X, Y = gen_labels(Actors, 0)
-    Y = to_categorical(Y)
-    print(X.shape, Y.shape)
-    try:
-        assert len(X) == len(Y)
-    except AssertionError:
-        print("X and Y are not the same length")
-    print("Evaluating model")
+    # Temp for evaluation
+    for i in range(len(data)):
+        print(data[i])
 
-    # Create empty train/val sets
-    train_x = np.zeros((batch_size, 300, 150))
-    train_y = np.zeros((batch_size, 1))
-    val_x = np.zeros((batch_size, 300, 150))
-    val_y = np.zeros((batch_size, 1))
+        args.data = data[i]
 
-    # Gender Classification Attack
-    print('\n\nPerforming Gender Classification Attack')
-    main(train_x, train_y, X, Y, val_x, val_y, 0)
+        Actors = load_data(0)
+        X, Y = gen_labels(Actors, 0, key_is_file=True)
+        Y = to_categorical(Y)
+        print(X.shape, Y.shape)
+        try:
+            assert len(X) == len(Y)
+        except AssertionError:
+            print("X and Y are not the same length")
+        print("Evaluating model")
+
+        # Create empty train/val sets
+        train_x = np.zeros((batch_size, 300, 150))
+        train_y = np.zeros((batch_size, 1))
+        val_x = np.zeros((batch_size, 300, 150))
+        val_y = np.zeros((batch_size, 1))
+
+        # Gender Classification Attack
+        print('\n\nPerforming Gender Classification Attack')
+        main(train_x, train_y, X, Y, val_x, val_y, 0)
 
 
-    # Action Classification Attack
-    Actors = load_data(1)
-    X, Y = gen_labels(Actors, 1)
-    print(X.shape, Y.shape)
-    try:
-        assert len(X) == len(Y)
-    except AssertionError:
-        print("X and Y are not the same length")
-    print("Evaluating model")
-    print('\n\nPerforming Action Classification Attack')
-    main(train_x, train_y, X, Y, val_x, val_y, 1)
+        # Action Classification Attack
+        X, Y = gen_labels(Actors, 1, key_is_file=True)
+        print(X.shape, Y.shape)
+        try:
+            assert len(X) == len(Y)
+        except AssertionError:
+            print("X and Y are not the same length")
+        print("Evaluating model")
+        print('\n\nPerforming Action Classification Attack')
+        main(train_x, train_y, X, Y, val_x, val_y, 1)
+
+
+    # Remove above when done with evaluation
+
+
+
+    # Actors = load_data(0)
+    # X, Y = gen_labels(Actors, 0)
+    # Y = to_categorical(Y)
+    # print(X.shape, Y.shape)
+    # try:
+    #     assert len(X) == len(Y)
+    # except AssertionError:
+    #     print("X and Y are not the same length")
+    # print("Evaluating model")
+
+    # # Create empty train/val sets
+    # train_x = np.zeros((batch_size, 300, 150))
+    # train_y = np.zeros((batch_size, 1))
+    # val_x = np.zeros((batch_size, 300, 150))
+    # val_y = np.zeros((batch_size, 1))
+
+    # # Gender Classification Attack
+    # print('\n\nPerforming Gender Classification Attack')
+    # main(train_x, train_y, X, Y, val_x, val_y, 0)
+
+
+    # # Action Classification Attack
+    # Actors = load_data(1)
+    # X, Y = gen_labels(Actors, 1)
+    # print(X.shape, Y.shape)
+    # try:
+    #     assert len(X) == len(Y)
+    # except AssertionError:
+    #     print("X and Y are not the same length")
+    # print("Evaluating model")
+    # print('\n\nPerforming Action Classification Attack')
+    # main(train_x, train_y, X, Y, val_x, val_y, 1)
 
