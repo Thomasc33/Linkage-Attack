@@ -279,38 +279,112 @@ def main(train_x, train_y, test_x, test_y, val_x, val_y, case, num_classes = Non
     model = model.cuda()
     test(test_loader, model, checkpoint, lable_path, pred_path)
 
+# Temp for evaluation
+data = [
+    'C:\\Users\\Carrt\\OneDrive\\Code\\Motion Privacy\\Linkage Attack\\RF Based Linkage Attack\\X.pkl', # Raw Data
+    'C:\\Users\\Carrt\\OneDrive\\Code\\Motion Privacy\\External Repositories\\Skeleton-anonymization\\X_resnet_file.pkl', # Moon ResNet
+    'C:\\Users\\Carrt\\OneDrive\\Code\\Motion Privacy\\External Repositories\\Skeleton-anonymization\\X_unet_file.pkl', # Moon UNet
+    'C:\\Users\\Carrt\\OneDrive\\Code\\Motion Privacy\\Defense Models\\Mean Skeleton\\X_FileNameKey_SingleActor_filtered.pkl' # Classical MR
+]
+
+file_names = [ # Arrays of file names to use for each data source
+    'C:\\Users\\Carrt\\OneDrive\\Code\\Motion Privacy\\Skeleton Info\\File Sorting\\ntu60.pkl',
+    'C:\\Users\\Carrt\\OneDrive\\Code\\Motion Privacy\\Linkage Attack\\SGN Based Linkage Attack\\data\\ntu120.pkl',
+    'C:\\Users\\Carrt\\OneDrive\\Code\\Motion Privacy\\Linkage Attack\\SGN Based Linkage Attack\\data\\ntu120_no_dupe_actors.pkl',
+    None # Use all data (ntu60+120)
+]
+# Delete this when done with evaluations
 
 if __name__ == '__main__':
-    Actors = load_data(args.data)
-    X, Y = gen_labels(Actors, 0)
-    Y = to_categorical(Y)
-    print(X.shape, Y.shape)
-    try:
-        assert len(X) == len(Y)
-    except AssertionError:
-        print("X and Y are not the same length")
-    print("Evaluating model")
+    # Temp for evaluation
+    for source in data:
+        for i in range(len(file_names)):
+            print('\n\n\n-------------------------------------------------------------------------------\n')
 
-    # Create empty train/val sets
-    train_x = np.zeros((batch_size, 300, 150))
-    train_y = np.zeros((batch_size, 1))
-    val_x = np.zeros((batch_size, 300, 150))
-    val_y = np.zeros((batch_size, 1))
+            Actors = load_data(source)
 
-    # Gender Classification Attack
-    print('\n\nPerforming Gender Classification Attack')
-    main(train_x, train_y, X, Y, val_x, val_y, 0)
+            if file_names[i] is not None:
+                with open(file_names[i], 'rb') as f:
+                    files_to_use = pickle.load(f)
+
+                to_del = []
+                for file in Actors:
+                    if file not in files_to_use:
+                        to_del.append(file)
+
+                for to_delete in to_del:
+                    del Actors[to_delete]
+
+            source_ = 'rf'
+            if 'Skeleton-anonymization' in source: source_ = 'skele_anon'
+            elif 'X.pkl' in source: source_ = 'raw'
+
+            X, Y = gen_labels(Actors, 0, key_is_file=True, source=source_)
+
+            with open('x_dump.pkl', 'wb') as f:
+                pickle.dump(X, f)
+            Y = to_categorical(Y)
+            try:
+                assert len(X) == len(Y)
+            except AssertionError:
+                print("X and Y are not the same length")
+
+            # Create empty train/val sets
+            train_x = np.zeros((batch_size, 300, 150))
+            train_y = np.zeros((batch_size, 1))
+            val_x = np.zeros((batch_size, 300, 150))
+            val_y = np.zeros((batch_size, 1))
+
+            # Gender Classification Attack
+            print('\n\nPerforming Gender Classification Attack\n\n')
+            main(train_x, train_y, X, Y, val_x, val_y, 0)
+
+            # Action Classification Attack
+            X, Y = gen_labels(Actors, 1, key_is_file=True, source=source_)
+            print(X.shape, Y.shape)
+            try:
+                assert len(X) == len(Y)
+            except AssertionError:
+                print("X and Y are not the same length")
+            print("Evaluating model")
+            print('\n\nPerforming Action Classification Attack\n\n')
+            main(train_x, train_y, X, Y, val_x, val_y, 1)
 
 
-    # Action Classification Attack
-    Actors = load_data(args.action_data)
-    X, Y = gen_labels(Actors, 1)
-    print(X.shape, Y.shape)
-    try:
-        assert len(X) == len(Y)
-    except AssertionError:
-        print("X and Y are not the same length")
-    print("Evaluating model")
-    print('\n\nPerforming Action Classification Attack')
-    main(train_x, train_y, X, Y, val_x, val_y, 1)
+    # Remove above when done with evaluation
+
+
+
+    # Actors = load_data(args.data)
+    # X, Y = gen_labels(Actors, 0)
+    # Y = to_categorical(Y)
+    # print(X.shape, Y.shape)
+    # try:
+    #     assert len(X) == len(Y)
+    # except AssertionError:
+    #     print("X and Y are not the same length")
+    # print("Evaluating model")
+
+    # # Create empty train/val sets
+    # train_x = np.zeros((batch_size, 300, 150))
+    # train_y = np.zeros((batch_size, 1))
+    # val_x = np.zeros((batch_size, 300, 150))
+    # val_y = np.zeros((batch_size, 1))
+
+    # # Gender Classification Attack
+    # print('\n\nPerforming Gender Classification Attack')
+    # main(train_x, train_y, X, Y, val_x, val_y, 0)
+
+
+    # # Action Classification Attack
+    # Actors = load_data(args.action_data)
+    # X, Y = gen_labels(Actors, 1)
+    # print(X.shape, Y.shape)
+    # try:
+    #     assert len(X) == len(Y)
+    # except AssertionError:
+    #     print("X and Y are not the same length")
+    # print("Evaluating model")
+    # print('\n\nPerforming Action Classification Attack')
+    # main(train_x, train_y, X, Y, val_x, val_y, 1)
 
