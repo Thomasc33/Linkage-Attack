@@ -1,6 +1,6 @@
 # Motion-Privacy
 
-TBI
+Code acompanying "Linkage Attack on Skeleton-based Motion Visualization" (Not yet published)
 
 # Acknowledgements
 
