@@ -248,8 +248,8 @@ def to_categorical(y):
     return np.array([np.array([1, 0]) if i == 0 else np.array([0, 1]) for i in y])
 
 def main(train_x, train_y, test_x, test_y, val_x, val_y, case, num_classes = None):
-    # if num_classes is None:
-    num_classes = get_num_classes(dataset, case)
+    if num_classes is None:
+        num_classes = get_num_classes(dataset, case)
     model = SGN(num_classes, dataset, seg, batch_size, 0)
 
     if torch.cuda.is_available():
