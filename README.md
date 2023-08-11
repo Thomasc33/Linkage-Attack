@@ -1,6 +1,6 @@
-# Motion-Privacy
+# Linkage-Attack
 
-Code acompanying "Linkage Attack on Skeleton-based Motion Visualization" (Not yet published)
+Code accompanying "Linkage Attack on Skeleton-based Motion Visualization" (In Proceedings)
 
 # Acknowledgements
 
