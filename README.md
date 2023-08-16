@@ -30,6 +30,8 @@ All pickle files containing the preprocessed data and saved models are located i
 
 # Acknowledgements
 
+This work was supported in part by UNC Charlotte startup fund and NSF grant 1840080.
+
 This code relies on multiple previous works as listed below:
 
 NTU RGB+D ([Code](https://github.com/shahroudy/NTURGB-D)) ([Paper (60)](https://www.cv-foundation.org/openaccess/content_cvpr_2016/papers/Shahroudy_NTU_RGBD_A_CVPR_2016_paper.pdf)) ([Paper (120)](https://arxiv.org/pdf/1905.04757.pdf))
