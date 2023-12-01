@@ -1,6 +1,6 @@
 # Linkage-Attack
 
-Code accompanying "Linkage Attack on Skeleton-based Motion Visualization" (In Proceedings)
+Code accompanying [Linkage Attack on Skeleton-based Motion Visualization](https://dl.acm.org/doi/10.1145/3583780.3615263) CIKM'23
 
 ## Attacking Models
 
