@@ -7,7 +7,7 @@ import math
 
 
 class SGN(nn.Module):
-    def __init__(self, num_classes, dataset, seg, batch_size, train, bias=True):
+    def __init__(self, num_classes, dataset, seg, batch_size, train=False, bias=True):
         super(SGN, self).__init__()
 
         self.dim1 = 256
