@@ -12,9 +12,15 @@ with:
   6) Default device='cuda'.
 
 Usage Example:
-  python linkage_attack_eval.py --model models/2unfrozen_67acc.pt \
-      --data "C:\\Users\\Carrt\\OneDrive\\Code\\Motion Retargeting\\NTU\\SGN\\X_full.pkl" \
-      --max_frames 75 --compute_auc
+  python linkage_attack_eval.py --model models/2unfrozen_67acc.pt --data "C:\\Users\\Carrt\\OneDrive\\Code\\Motion Retargeting\\NTU\\SGN\\X_full.pkl" --max_frames 75 --compute_auc
+  
+  python linkage_attack_eval.py --model models/2unfrozen_67acc.pt --data "C:\\Users\\Carrt\\OneDrive\\Code\\Motion Retargeting\\NTU\\SGN\\X_full.pkl" --max_frames 75
+  python linkage_attack_eval.py --model models/2unfrozen_67acc.pt --data "E:/LocalCode/Linkage Attack/External Repositories/Skeleton-anonymization/X_resnet_file.pkl" --max_frames 75
+  python linkage_attack_eval.py --model models/2unfrozen_67acc.pt --data "E:/LocalCode/Linkage Attack/External Repositories/Skeleton-anonymization/X_unet_file.pkl" --max_frames 75
+  python linkage_attack_eval.py --model models/2unfrozen_67acc.pt --data "C:/Users/Carrt/OneDrive/Code/Motion Retargeting/results/DMR_X_hat_constant_CA.pkl" --max_frames 75
+  python linkage_attack_eval.py --model models/2unfrozen_67acc.pt --data "C:/Users/Carrt/OneDrive/Code/Motion Retargeting/results/X_hat_constant_CA.pkl" --max_frames 75
+  python linkage_attack_eval.py --model models/2unfrozen_67acc.pt --data "C:/Users/Carrt/OneDrive/Code/Motion Retargeting/results/NTU_120_DMR_X_hat_constant_CA.pkl" --max_frames 75
+  python linkage_attack_eval.py --model models/2unfrozen_67acc.pt --data "C:/Users/Carrt/OneDrive/Code/Motion Retargeting/results/DMR_X_hat_constant_CA.pkl" --max_frames 75
 """
 
 import argparse
@@ -397,6 +403,8 @@ def main():
                         help='Compute and display ROC-AUC as well.')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed.')
+    parser.add_argument('--runs', type=int, default=5,
+                        help='Number of evaluation runs to perform for statistics.')
     args = parser.parse_args()
 
     # If the user explicitly did --device cpu but there's a GPU, that's fine.
@@ -416,7 +424,8 @@ def main():
     print(f"Segments (SGN):     {args.segments}")
     print(f"Max Frames (T):     {args.max_frames}")
     print(f"Compute AUC:        {args.compute_auc}")
-    print(f"Random Seed:        {args.seed}")
+    print(f"Base Seed:          {args.seed}")
+    print(f"Number of runs:     {args.runs}")
     print("------------------------------------------")
 
     # 1) Load skeleton data
@@ -425,16 +434,7 @@ def main():
         data_dict = pickle.load(f)
     print(f"Loaded {len(data_dict)} skeleton sequences.")
 
-    # 2) Generate pairs
-    print("Generating pairs (same/diff)...")
-    pairs = data_generator_per_actor(
-        data_dict=data_dict,
-        same_samples_per_actor=args.samples_same,
-        diff_samples_per_actor=args.samples_diff,
-        seed=args.seed
-    )
-
-    # 3) Initialize SGN encoders + Linkage Attack model (as requested)
+    # Initialize model once
     num_classes = 1
     SGN_Encoder1 = SGN(
         num_classes=num_classes,
@@ -452,45 +452,76 @@ def main():
 
     model = SGN_Linkage_Attack(SGN_Encoder1, SGN_Encoder2, output_size=1).to(device)
 
-    # 4) Load saved model
+    # Load saved model
     if not os.path.exists(args.model):
         raise FileNotFoundError(f"Could not find model file: {args.model}")
     print(f"Loading model from {args.model} ...")
     model.load_state_dict(torch.load(args.model, map_location=device))
     model.eval()
+    
+    # Store results across multiple runs
+    all_results = []
+    
+    # Run experiment multiple times
+    for run in range(args.runs):
+        current_seed = args.seed + run
+        print(f"\n--- Run {run+1}/{args.runs} (seed: {current_seed}) ---")
+        
+        # Generate pairs with a different seed each run
+        print("Generating pairs (same/diff)...")
+        pairs = data_generator_per_actor(
+            data_dict=data_dict,
+            same_samples_per_actor=args.samples_same,
+            diff_samples_per_actor=args.samples_diff,
+            seed=current_seed
+        )
 
-    # 5) Create dataset & loader
-    dataset_eval = SGN_Linkage_Dataset(
-        pairs,
-        seg=args.segments,
-        device=device,      # default='cuda'
-        max_frames=args.max_frames
-    )
-    loader_eval = DataLoader(dataset_eval, batch_size=args.batch_size,
-                             shuffle=False, drop_last=False)
+        # Create dataset & loader
+        dataset_eval = SGN_Linkage_Dataset(
+            pairs,
+            seg=args.segments,
+            device=device,
+            max_frames=args.max_frames
+        )
+        loader_eval = DataLoader(dataset_eval, batch_size=args.batch_size,
+                                 shuffle=False, drop_last=False)
 
-    # 6) Evaluate
-    print("Starting evaluation loop...")
-    results = evaluate_model(model, loader_eval, device=device, compute_auc=args.compute_auc)
-
-    # 7) Print results
-    print("\n=== Linkage Attack Evaluation Results ===")
-    print(f"Loss:            {results['loss']:.4f}")
-    print(f"Accuracy:        {results['accuracy']:.4f}")
-    print(f"Precision:       {results['precision']:.4f}")
-    print(f"Recall:          {results['recall']:.4f}")
-    print(f"F1 Score:        {results['f1']:.4f}")
-
-    if args.compute_auc:
-        auc_val = results['auc']
-        if auc_val is None:
-            print("ROC-AUC:         could not compute (only one class?).")
-        else:
-            print(f"ROC-AUC:         {auc_val:.4f}")
-
-    print("------------------------------------------")
-    print("Confusion Matrix (rows=actual, cols=pred):")
-    print(results['confusion_matrix'])
+        # Evaluate
+        print("Starting evaluation loop...")
+        results = evaluate_model(model, loader_eval, device=device, compute_auc=args.compute_auc)
+        all_results.append(results)
+        
+        # Print individual run results
+        print(f"\n=== Run {run+1} Results ===")
+        print(f"Loss:      {results['loss']:.4f}")
+        print(f"Accuracy:  {results['accuracy']:.4f}")
+        print(f"F1 Score:  {results['f1']:.4f}")
+    
+    # Calculate statistics
+    accuracy_values = [r['accuracy'] for r in all_results]
+    f1_values = [r['f1'] for r in all_results]
+    loss_values = [r['loss'] for r in all_results]
+    
+    mean_accuracy = np.mean(accuracy_values)
+    std_accuracy = np.std(accuracy_values)
+    mean_f1 = np.mean(f1_values)
+    std_f1 = np.std(f1_values)
+    mean_loss = np.mean(loss_values)
+    std_loss = np.std(loss_values)
+    
+    # Print summary statistics
+    print("\n========================================")
+    print("          EXPERIMENT SUMMARY            ")
+    print("========================================")
+    print(f"Data file: {args.data}")
+    print(f"Model file: {args.model}")
+    print(f"Number of runs: {args.runs}")
+    print(f"Samples per actor: {args.samples_same} same, {args.samples_diff} diff")
+    print("\n--- Performance Metrics ---")
+    print(f"Accuracy: {mean_accuracy:.4f} ± {std_accuracy:.4f}")
+    print(f"F1 Score: {mean_f1:.4f} ± {std_f1:.4f}")
+    print(f"Loss: {mean_loss:.4f} ± {std_loss:.4f}")
+    print("----------------------------------------")
 
 
 if __name__ == "__main__":
