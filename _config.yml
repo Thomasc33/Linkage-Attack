@@ -1,0 +1,21 @@
+title: LAN
+description: Linkage Attack on Skeleton-based Motion Visualization (CIKM '23)
+url: https://linkage.thomasc.tech
+
+# Serve index.html as-is; exclude code, data, and checkpoints from the Pages build
+exclude:
+  - "Attacking Models/"
+  - "Defense Models/"
+  - "Linkage Attack/"
+  - "Skeleton Info/"
+  - "Figures/"
+  - "*.py"
+  - "*.ipynb"
+  - "*.pt"
+  - "*.pth"
+  - "*.pkl"
+  - "*.csv"
+  - "*.bvh"
+  - "*.docx"
+  - LICENSE
+  - README.md

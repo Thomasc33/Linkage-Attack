@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAN — Linkage Attack on Skeleton-based Motion Visualization</title>
+    <meta name="description" content="A Siamese-style linkage attack that re-identifies people from anonymous skeleton motion data, and motion retargeting as a general defense. CIKM 2023.">
+    <meta name="author" content="Thomas Carr, Aidong Lu, Depeng Xu">
+    <link rel="canonical" href="https://linkage.thomasc.tech/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Linkage Attack on Skeleton-based Motion Visualization">
+    <meta property="og:description" content="LAN detects whether an anonymized target skeleton and a known reference skeleton belong to the same individual. CIKM 2023.">
+    <meta property="og:url" content="https://linkage.thomasc.tech/">
+    <meta name="twitter:card" content="summary">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --font-display: 'Instrument Serif', Georgia, serif;
+            --font-body: 'Outfit', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --nav-height: 64px;
+            --max-width: 1200px;
+            --transition-theme: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+        [data-theme="light"] {
+            --bg: #F5F4F0; --bg-surface: #FFFFFF; --bg-elevated: #FFFFFF; --bg-code: #F0EFEB;
+            --text: #1A1A1A; --text-muted: #6B6B6B; --text-faint: #9A9A9A;
+            --accent: #BE123C; --accent-hover: #9F1239; --accent-subtle: rgba(190,18,60,0.07); --accent-border: rgba(190,18,60,0.25);
+            --teal: #0D9488; --teal-subtle: rgba(13,148,136,0.07); --teal-border: rgba(13,148,136,0.25);
+            --amber: #B45309; --amber-subtle: rgba(180,83,9,0.07); --amber-border: rgba(180,83,9,0.25);
+            --violet: #7C3AED; --violet-subtle: rgba(124,58,237,0.07); --violet-border: rgba(124,58,237,0.25);
+            --border: #E5E4E0; --border-strong: #D4D3CF;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04); --shadow-md: 0 4px 16px rgba(0,0,0,0.06); --shadow-lg: 0 12px 40px rgba(0,0,0,0.08);
+            --nav-bg: rgba(245,244,240,0.85); --grain-opacity: 0.03;
+            --skel-target: #BE123C; --skel-ref: #0D9488; --hl-row: rgba(190,18,60,0.06);
+        }
+        [data-theme="dark"] {
+            --bg: #0B0B0D; --bg-surface: #141416; --bg-elevated: #1C1C1F; --bg-code: #18181B;
+            --text: #ECECEC; --text-muted: #8B8B8B; --text-faint: #555555;
+            --accent: #FB7185; --accent-hover: #FDA4AF; --accent-subtle: rgba(251,113,133,0.08); --accent-border: rgba(251,113,133,0.2);
+            --teal: #2DD4BF; --teal-subtle: rgba(45,212,191,0.08); --teal-border: rgba(45,212,191,0.2);
+            --amber: #FBBF24; --amber-subtle: rgba(251,191,36,0.08); --amber-border: rgba(251,191,36,0.2);
+            --violet: #A78BFA; --violet-subtle: rgba(167,139,250,0.08); --violet-border: rgba(167,139,250,0.2);
+            --border: #27272A; --border-strong: #3F3F46;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.2); --shadow-md: 0 4px 16px rgba(0,0,0,0.3); --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
+            --nav-bg: rgba(11,11,13,0.85); --grain-opacity: 0.02;
+            --skel-target: #FB7185; --skel-ref: #2DD4BF; --hl-row: rgba(251,113,133,0.06);
+        }
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+        html{scroll-behavior:smooth;scroll-padding-top:calc(var(--nav-height) + 24px)}
+        body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.65;overflow-x:hidden;transition:var(--transition-theme);-webkit-font-smoothing:antialiased}
+        body::after{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:var(--grain-opacity);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px}
+        a{color:var(--accent);text-decoration:none;transition:color 0.2s}a:hover{color:var(--accent-hover)}
+        img{max-width:100%;height:auto;display:block}
+        :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+        /* NAV */
+        nav{position:fixed;top:0;width:100%;height:var(--nav-height);background:var(--nav-bg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);z-index:1000;transition:var(--transition-theme),box-shadow 0.3s}
+        nav.scrolled{box-shadow:var(--shadow-md)}
+        .nav-inner{max-width:var(--max-width);margin:0 auto;padding:0 2rem;height:100%;display:flex;align-items:center;justify-content:space-between}
+        .nav-logo{font-family:var(--font-display);font-size:1.5rem;color:var(--text);letter-spacing:-0.02em;transition:var(--transition-theme)}
+        .nav-links{display:flex;align-items:center;gap:2rem;list-style:none}
+        .nav-links a{color:var(--text-muted);font-size:0.875rem;font-weight:500;letter-spacing:0.01em;transition:color 0.2s}
+        .nav-links a:hover{color:var(--text)}
+        .theme-toggle{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--bg-surface);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:var(--transition-theme)}
+        .theme-toggle:hover{color:var(--text);border-color:var(--border-strong)}
+        .mobile-toggle{display:none;width:36px;height:36px;border:none;background:none;color:var(--text);cursor:pointer;font-size:1.25rem}
+        .nav-right{display:flex;align-items:center;gap:0.5rem}
+        #mobile-theme{display:none}
+
+        /* HERO */
+        .hero{max-width:var(--max-width);margin:0 auto;padding:calc(var(--nav-height) + 5rem) 2rem 4rem;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center;min-height:85vh}
+        .hero-content{max-width:560px}
+        .hero-badge{display:inline-flex;align-items:center;gap:0.5rem;padding:0.4rem 1rem;background:var(--accent-subtle);border:1px solid var(--accent-border);border-radius:100px;font-size:0.8rem;font-weight:600;color:var(--accent);letter-spacing:0.04em;margin-bottom:1.5rem;transition:var(--transition-theme)}
+        .hero h1{font-family:var(--font-display);font-size:clamp(2.5rem,5vw,3.75rem);line-height:1.1;letter-spacing:-0.02em;color:var(--text);margin-bottom:1.25rem;transition:var(--transition-theme)}
+        .hero-sub{font-size:1.125rem;color:var(--text-muted);line-height:1.7;margin-bottom:2rem;font-weight:300;max-width:480px;transition:var(--transition-theme)}
+        .hero-authors{font-size:0.85rem;color:var(--text-faint);margin-bottom:2rem;line-height:1.7}
+        .hero-authors strong{color:var(--text-muted);font-weight:500}
+        .hero-actions{display:flex;gap:0.75rem;flex-wrap:wrap}
+        .btn{display:inline-flex;align-items:center;gap:0.5rem;padding:0.7rem 1.5rem;border-radius:8px;font-family:var(--font-body);font-size:0.875rem;font-weight:600;border:none;cursor:pointer;transition:background 0.25s ease,color 0.25s ease,border-color 0.25s ease,box-shadow 0.25s ease,transform 0.25s ease;text-decoration:none}
+        .btn-primary{background:var(--accent);color:#fff}
+        [data-theme="dark"] .btn-primary{color:#0B0B0D}
+        .btn-primary:hover{background:var(--accent-hover);color:#fff;transform:translateY(-1px);box-shadow:var(--shadow-md)}
+        [data-theme="dark"] .btn-primary:hover{color:#0B0B0D}
+        .btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+        .btn-outline:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+        .hero-visual{display:flex;align-items:center;justify-content:center}
+        .hero-visual svg{width:100%;max-width:460px;height:auto}
+
+        /* Skeleton styling */
+        .skel-joint,.skel-bone{transition:var(--transition-theme)}
+        .st .skel-joint{fill:var(--skel-target)}.st .skel-bone{stroke:var(--skel-target);opacity:0.5}
+        .sr .skel-joint{fill:var(--skel-ref)}.sr .skel-bone{stroke:var(--skel-ref);opacity:0.5}
+        .st{animation:breathe 5s ease-in-out infinite}.sr{animation:breathe 5s ease-in-out infinite 0.6s}
+        @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+        .skel-label{font-family:var(--font-body);font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;transition:var(--transition-theme)}
+        .skel-arm{animation:armswing 3.5s ease-in-out infinite}
+        @keyframes armswing{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-8deg)}}
+        .link-dash{stroke-dasharray:6 6;animation:dashflow 2.4s linear infinite}
+        @keyframes dashflow{to{stroke-dashoffset:-24}}
+        .match-pulse{animation:pulse 2.6s ease-in-out infinite}
+        @keyframes pulse{0%,100%{opacity:0.35}50%{opacity:1}}
+
+        /* STATS */
+        .stats-bar{max-width:var(--max-width);margin:0 auto;padding:0 2rem 5rem}
+        .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);transition:var(--transition-theme)}
+        .stat-item{background:var(--bg-surface);padding:2.5rem 2rem;text-align:center;transition:var(--transition-theme)}
+        .stat-number{font-family:var(--font-display);font-size:clamp(2.25rem,4vw,3rem);line-height:1;margin-bottom:0.5rem;letter-spacing:-0.02em;color:var(--accent)}
+        .stat-change{font-size:0.75rem;font-weight:600;color:var(--accent);margin-bottom:0.5rem;display:flex;align-items:center;justify-content:center;gap:0.25rem}
+        .stat-label{font-size:0.8rem;color:var(--text-muted);font-weight:500;letter-spacing:0.02em;transition:var(--transition-theme)}
+
+        /* SECTIONS */
+        .section{max-width:var(--max-width);margin:0 auto;padding:5rem 2rem}
+        .section-label{font-size:0.75rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:0.75rem;transition:var(--transition-theme)}
+        .section-title{font-family:var(--font-display);font-size:clamp(2rem,3.5vw,2.75rem);line-height:1.15;letter-spacing:-0.02em;margin-bottom:0.75rem;color:var(--text);transition:var(--transition-theme)}
+        .section-desc{font-size:1.05rem;color:var(--text-muted);max-width:640px;line-height:1.7;margin-bottom:3rem;font-weight:300;transition:var(--transition-theme)}
+        .divider{width:100%;height:1px;background:var(--border);max-width:var(--max-width);margin:0 auto;transition:var(--transition-theme)}
+        .sub-h{font-family:var(--font-body);font-size:1.05rem;font-weight:600;color:var(--text);margin:3rem 0 1rem;transition:var(--transition-theme)}
+
+        /* FEATURES */
+        .fg{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);transition:var(--transition-theme)}
+        .fc{background:var(--bg-surface);padding:2rem;transition:var(--transition-theme);position:relative}
+        .fc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:0;transition:opacity 0.3s}
+        .fc:hover::before{opacity:1}.fc:hover{background:var(--bg-elevated)}
+        .fc h3{font-family:var(--font-body);font-size:1rem;font-weight:600;margin-bottom:0.5rem;color:var(--text);transition:var(--transition-theme)}
+        .fc p{font-size:0.875rem;color:var(--text-muted);line-height:1.6;transition:var(--transition-theme)}
+        .fdot{width:8px;height:8px;border-radius:50%;margin-bottom:1rem;transition:var(--transition-theme)}
+        .fdot.rose{background:var(--accent)}.fdot.teal{background:var(--teal)}.fdot.amber{background:var(--amber)}.fdot.violet{background:var(--violet)}
+
+        /* THREAT MODEL */
+        .tm{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:2rem}
+        .tmc{background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;padding:1.75rem;transition:var(--transition-theme)}
+        .tmc .tmi{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:0.95rem;margin-bottom:1rem}
+        .tmc.a .tmi{background:var(--accent-subtle);color:var(--accent);border:1px solid var(--accent-border)}
+        .tmc.b .tmi{background:var(--violet-subtle);color:var(--violet);border:1px solid var(--violet-border)}
+        .tmc.c .tmi{background:var(--teal-subtle);color:var(--teal);border:1px solid var(--teal-border)}
+        .tmc h4{font-size:0.95rem;font-weight:600;margin-bottom:0.5rem;color:var(--text);transition:var(--transition-theme)}
+        .tmc p{font-size:0.85rem;color:var(--text-muted);line-height:1.6;transition:var(--transition-theme)}
+
+        /* TABS */
+        .tabs-nav{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:2rem;overflow-x:auto;transition:var(--transition-theme)}
+        .tab-btn{padding:0.75rem 1.25rem;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-family:var(--font-body);font-size:0.875rem;font-weight:500;cursor:pointer;white-space:nowrap;transition:color 0.2s,border-color 0.2s;margin-bottom:-1px}
+        .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+        .tab-btn:hover:not(.active){color:var(--text)}
+        .tp{display:none;animation:tf 0.35s ease}.tp.active{display:block}
+        @keyframes tf{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+        /* ARCHITECTURE FLOW */
+        .arch-d{background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem;overflow-x:auto;transition:var(--transition-theme)}
+        .arch-flow{display:flex;align-items:center;justify-content:center;gap:1rem;min-width:880px}
+        .ab{padding:1rem 1.1rem;border-radius:10px;text-align:center;font-size:0.8rem;font-weight:600;border:1px solid;min-width:118px;transition:var(--transition-theme)}
+        .acol .ab{min-height:92px;display:flex;flex-direction:column;justify-content:center}
+        .ab small{display:block;font-weight:400;opacity:0.7;margin-top:0.25rem;font-size:0.7rem}
+        .ab.inp{background:var(--bg-elevated);border-color:var(--border-strong);color:var(--text-muted)}
+        .ab.dr{background:var(--amber-subtle);border-color:var(--amber-border);color:var(--amber)}
+        .ab.jm{background:var(--violet-subtle);border-color:var(--violet-border);color:var(--violet)}
+        .ab.fm{background:var(--teal-subtle);border-color:var(--teal-border);color:var(--teal)}
+        .ab.emb{background:var(--bg-elevated);border-color:var(--border-strong);color:var(--text)}
+        .ab.clf{background:var(--accent-subtle);border-color:var(--accent-border);color:var(--accent)}
+        .ab.out{background:var(--accent-subtle);border-color:var(--accent-border);color:var(--accent)}
+        .aarr{color:var(--text-faint);font-size:1.25rem;flex-shrink:0}
+        .acol{display:flex;flex-direction:column;gap:0.75rem;align-items:stretch}
+        .arch-cap{text-align:center;color:var(--text-muted);font-size:0.85rem;margin-top:1.5rem;transition:var(--transition-theme)}
+        .shared-sem{margin-top:1.25rem;text-align:center;font-size:0.75rem;font-family:var(--font-mono);color:var(--text-faint);letter-spacing:0.04em}
+
+        /* STAGES */
+        .sg{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);transition:var(--transition-theme)}
+        .sc{background:var(--bg-surface);padding:2rem;transition:var(--transition-theme)}
+        .sn{font-family:var(--font-display);font-size:2rem;color:var(--text-faint);margin-bottom:0.25rem;transition:var(--transition-theme)}
+        .sc h4{font-size:1rem;font-weight:600;margin-bottom:1rem;color:var(--text);transition:var(--transition-theme)}
+        .sm{display:grid;grid-template-columns:repeat(3,1fr);gap:0.4rem;margin-bottom:1rem}
+        .smod{padding:0.5rem;border-radius:6px;text-align:center;font-size:0.7rem;font-weight:600;letter-spacing:0.03em}
+        .smod.ta{background:var(--accent);color:#fff}[data-theme="dark"] .smod.ta{color:#0B0B0D}
+        .smod.tv{background:var(--violet);color:#fff}
+        .smod.tw{background:var(--amber);color:#fff}[data-theme="dark"] .smod.tw{color:#0B0B0D}
+        .smod.tt{background:var(--teal);color:#fff}[data-theme="dark"] .smod.tt{color:#0B0B0D}
+        .smod.fz{background:var(--bg-elevated);color:var(--text-faint);border:1px solid var(--border)}
+        .si{font-size:0.825rem;color:var(--text-muted);line-height:1.55;transition:var(--transition-theme)}
+        .si strong{color:var(--text);transition:var(--transition-theme)}
+
+        /* COMPONENTS */
+        .cg{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);transition:var(--transition-theme)}
+        .cc{background:var(--bg-surface);padding:1.75rem;transition:var(--transition-theme)}
+        .ct{display:inline-flex;padding:0.2rem 0.6rem;border-radius:4px;font-family:var(--font-mono);font-size:0.75rem;font-weight:500;margin-bottom:0.75rem}
+        .ct.rose{background:var(--accent-subtle);color:var(--accent)}.ct.violet{background:var(--violet-subtle);color:var(--violet)}
+        .ct.amber{background:var(--amber-subtle);color:var(--amber)}.ct.teal{background:var(--teal-subtle);color:var(--teal)}
+        .cc h4{font-size:0.95rem;font-weight:600;margin-bottom:0.5rem;color:var(--text);transition:var(--transition-theme)}
+        .cc p{font-size:0.825rem;color:var(--text-muted);line-height:1.55;transition:var(--transition-theme)}
+
+        /* TABLES */
+        .tw{background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);transition:var(--transition-theme)}
+        .tsc{overflow-x:auto}
+        .tw table{width:100%;border-collapse:collapse;font-size:0.85rem;min-width:520px}
+        .tw th{background:var(--bg-elevated);padding:0.875rem 1rem;text-align:left;font-weight:600;font-size:0.75rem;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);transition:var(--transition-theme)}
+        .tw td{padding:0.875rem 1rem;border-bottom:1px solid var(--border);transition:var(--transition-theme)}
+        .tw tr:last-child td{border-bottom:none}.tw tbody tr:hover td{background:var(--hl-row)}
+        .tw .hr td{background:var(--hl-row)}.hl{color:var(--accent);font-weight:600}
+        .tnum{font-family:var(--font-mono);font-size:0.8rem}
+        .tcap{font-size:0.8rem;color:var(--text-faint);margin-top:0.875rem;line-height:1.6}
+
+        /* FINDINGS */
+        .fgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:2.5rem}
+        .fcard{padding:1.25rem 1.5rem;border-radius:12px;border-left:3px solid;transition:var(--transition-theme)}
+        .fcard.rose{background:var(--accent-subtle);border-color:var(--accent)}.fcard.violet{background:var(--violet-subtle);border-color:var(--violet)}
+        .fcard.teal{background:var(--teal-subtle);border-color:var(--teal)}.fcard.amber{background:var(--amber-subtle);border-color:var(--amber)}
+        .fcard h4{font-size:0.875rem;font-weight:600;margin-bottom:0.4rem;transition:var(--transition-theme)}
+        .fcard.rose h4{color:var(--accent)}.fcard.violet h4{color:var(--violet)}.fcard.teal h4{color:var(--teal)}.fcard.amber h4{color:var(--amber)}
+        .fcard p{font-size:0.825rem;color:var(--text-muted);line-height:1.55;transition:var(--transition-theme)}
+
+        /* FIGURES */
+        .fig{background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:var(--transition-theme)}
+        .fig .fig-plate{background:#FFFFFF;padding:1.25rem}
+        .fig img{width:100%;height:auto}
+        .fig figcaption{padding:0.875rem 1.25rem;font-size:0.8rem;color:var(--text-muted);line-height:1.55;border-top:1px solid var(--border);transition:var(--transition-theme)}
+        .igrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;margin:1.5rem 0;align-items:start}
+        .fig.narrow{max-width:560px}
+
+        /* CODE */
+        .cb{background:var(--bg-code);border:1px solid var(--border);border-radius:12px;padding:1.5rem;overflow-x:auto;position:relative;transition:var(--transition-theme)}
+        .cb pre{font-family:var(--font-mono);font-size:0.8rem;line-height:1.7;color:var(--text);margin:0;transition:var(--transition-theme)}
+        .cb .cpb{position:absolute;top:0.75rem;right:0.75rem;width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--bg-surface);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.75rem;opacity:0;transition:opacity 0.2s,var(--transition-theme)}
+        .cb:hover .cpb,.cb .cpb:focus-visible{opacity:1}.cb .cpb:hover{color:var(--accent);border-color:var(--accent)}
+        .cmt{color:var(--text-faint)}
+
+        /* REPO TREE */
+        .tree{background:var(--bg-code);border:1px solid var(--border);border-radius:12px;padding:1.5rem;overflow-x:auto;font-family:var(--font-mono);font-size:0.8rem;line-height:1.9;color:var(--text-muted);white-space:pre;transition:var(--transition-theme)}
+        .tree b{color:var(--text);font-weight:500}
+        .tree i{color:var(--text-faint);font-style:normal}
+
+        /* SPECS */
+        .spg{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm);transition:var(--transition-theme)}
+        .spc{background:var(--bg-surface);padding:1.75rem;transition:var(--transition-theme)}
+        .spc h4{font-size:0.9rem;font-weight:600;margin-bottom:0.75rem;color:var(--text);transition:var(--transition-theme)}
+        .spc p{font-size:0.825rem;color:var(--text-muted);line-height:1.65;transition:var(--transition-theme)}
+        .spc strong{color:var(--text);font-weight:500;transition:var(--transition-theme)}
+
+        /* CITATION */
+        .cit-block{background:var(--bg-surface);border:1px solid var(--border);border-radius:16px;padding:2rem;position:relative;transition:var(--transition-theme)}
+        .cit-block pre{font-family:var(--font-mono);font-size:0.8rem;line-height:1.7;color:var(--text);background:var(--bg-code);padding:1.25rem;border-radius:8px;overflow-x:auto;margin:0;transition:var(--transition-theme)}
+        .cit-copy{position:absolute;top:1rem;right:1rem;padding:0.4rem 0.8rem;border-radius:6px;border:1px solid var(--border);background:var(--bg-elevated);color:var(--text-muted);font-family:var(--font-body);font-size:0.75rem;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:0.35rem;transition:var(--transition-theme)}
+        .cit-copy:hover{color:var(--accent);border-color:var(--accent)}
+        .pub-d{margin-top:1.5rem;padding:1.25rem;background:var(--accent-subtle);border-left:3px solid var(--accent);border-radius:8px;transition:var(--transition-theme)}
+        .pub-d p{font-size:0.85rem;color:var(--text-muted);margin:0.3rem 0;transition:var(--transition-theme)}
+        .pub-d strong{color:var(--text);transition:var(--transition-theme)}
+
+        /* RELATED */
+        .rg{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:2rem}
+        .rc{display:block;background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;color:inherit;transition:var(--transition-theme),transform 0.25s}
+        .rc:hover{border-color:var(--accent);transform:translateY(-2px);color:inherit}
+        .rc .rv{font-size:0.7rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.5rem}
+        .rc h4{font-size:0.95rem;font-weight:600;color:var(--text);margin-bottom:0.35rem}
+        .rc p{font-size:0.825rem;color:var(--text-muted);line-height:1.55}
+
+        /* FOOTER */
+        footer{border-top:1px solid var(--border);padding:3rem 2rem;text-align:center;transition:var(--transition-theme)}
+        .footer-inner{max-width:var(--max-width);margin:0 auto}
+        .fl{display:flex;justify-content:center;gap:2rem;margin-bottom:1.5rem;flex-wrap:wrap}
+        .fl a{color:var(--text-muted);font-size:0.85rem;font-weight:500;display:flex;align-items:center;gap:0.4rem;transition:color 0.2s}
+        .fl a:hover{color:var(--text)}
+        .fc-copy{font-size:0.8rem;color:var(--text-faint);transition:var(--transition-theme)}
+        .fund{font-size:0.78rem;color:var(--text-faint);margin-top:0.75rem;max-width:640px;margin-left:auto;margin-right:auto;line-height:1.6}
+
+        /* SCROLL REVEAL */
+        .reveal{opacity:0;transform:translateY(24px);transition:opacity 0.7s ease,transform 0.7s ease}
+        .reveal.vis{opacity:1;transform:translateY(0)}
+        .rd1{transition-delay:0.1s}.rd2{transition-delay:0.2s}.rd3{transition-delay:0.3s}
+
+        /* MOBILE MENU */
+        .mm{display:none;position:fixed;top:var(--nav-height);left:0;right:0;background:var(--bg-surface);border-bottom:1px solid var(--border);padding:1rem;z-index:999;box-shadow:var(--shadow-lg);transition:var(--transition-theme)}
+        .mm.open{display:block;animation:tf 0.25s ease}
+        .mm a{display:block;padding:0.75rem 1rem;color:var(--text-muted);font-weight:500;font-size:0.95rem;border-radius:8px;transition:background 0.2s,color 0.2s}
+        .mm a:hover{background:var(--bg-elevated);color:var(--text)}
+
+        /* RESPONSIVE */
+        @media(max-width:1024px){
+            .fg,.cg,.spg,.tm{grid-template-columns:repeat(2,1fr)}
+            .hero{grid-template-columns:1fr;gap:2rem;min-height:auto;padding-top:calc(var(--nav-height) + 3rem)}
+            .hero-visual{order:-1}.hero-visual svg{max-width:360px}.hero-content{max-width:100%}
+        }
+        @media(max-width:768px){
+            .nav-links{display:none}.mobile-toggle{display:flex;align-items:center;justify-content:center}
+            #mobile-theme{display:flex}
+            .fg,.sg,.cg,.fgrid,.spg,.tm,.igrid,.rg{grid-template-columns:1fr}
+            .stats-grid{grid-template-columns:1fr}
+            .hero h1{font-size:2.25rem}.hero-visual svg{max-width:300px}
+            .section{padding:3rem 1.25rem}.arch-d{padding:1.5rem 1rem}
+            .nav-inner{padding:0 1.25rem}
+        }
+        @media(max-width:480px){.hero-actions{flex-direction:column}.hero-actions .btn{width:100%;justify-content:center}}
+        @media(prefers-reduced-motion:reduce){
+            *,*::before,*::after{animation-duration:0.01ms !important;animation-iteration-count:1 !important;transition-duration:0.01ms !important}
+            html{scroll-behavior:auto}
+            .reveal{opacity:1;transform:none}
+        }
+    </style>
+</head>
+<body>
+    <nav id="nav"><div class="nav-inner">
+        <a href="#" class="nav-logo">LAN</a>
+        <ul class="nav-links">
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#method">Method</a></li>
+            <li><a href="#results">Results</a></li>
+            <li><a href="#defense">Defense</a></li>
+            <li><a href="#usage">Usage</a></li>
+            <li><a href="#citation">Citation</a></li>
+            <li><a href="https://github.com/Thomasc33/Linkage-Attack" target="_blank" rel="noopener"><i class="fab fa-github" aria-hidden="true"></i> GitHub</a></li>
+            <li><button class="theme-toggle" id="dt" aria-label="Toggle color theme"><i class="fas fa-sun" id="ti" aria-hidden="true"></i></button></li>
+        </ul>
+        <div class="nav-right">
+            <button class="theme-toggle" id="mobile-theme" aria-label="Toggle color theme"><i class="fas fa-sun" id="ti2" aria-hidden="true"></i></button>
+            <button class="mobile-toggle" id="mt" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mmenu"><i class="fas fa-bars" id="mi" aria-hidden="true"></i></button>
+        </div>
+    </div></nav>
+
+    <div class="mm" id="mmenu">
+        <a href="#overview" onclick="cmm()">Overview</a>
+        <a href="#method" onclick="cmm()">Method</a>
+        <a href="#results" onclick="cmm()">Results</a>
+        <a href="#defense" onclick="cmm()">Defense</a>
+        <a href="#usage" onclick="cmm()">Usage</a>
+        <a href="#citation" onclick="cmm()">Citation</a>
+        <a href="https://github.com/Thomasc33/Linkage-Attack" target="_blank" rel="noopener"><i class="fab fa-github" aria-hidden="true"></i> GitHub</a>
+    </div>
+
+    <main>
+        <section class="hero">
+            <div class="hero-content">
+                <div class="hero-badge reveal">CIKM 2023</div>
+                <h1 class="reveal rd1">Linkage Attack on Skeleton Motion</h1>
+                <p class="hero-sub reveal rd2">Skeleton data captured in VR looks anonymous. A Siamese matching network shows it is not &mdash; and that motion retargeting is a general defense.</p>
+                <p class="hero-authors reveal rd2"><strong>Thomas Carr</strong> &middot; <strong>Aidong Lu</strong> &middot; <strong>Depeng Xu</strong><br>University of North Carolina at Charlotte</p>
+                <div class="hero-actions reveal rd3">
+                    <a href="https://dl.acm.org/doi/10.1145/3583780.3615263" class="btn btn-primary" target="_blank" rel="noopener"><i class="fas fa-file-pdf" aria-hidden="true"></i> Read Paper</a>
+                    <a href="https://github.com/Thomasc33/Linkage-Attack" class="btn btn-outline" target="_blank" rel="noopener"><i class="fab fa-github" aria-hidden="true"></i> GitHub</a>
+                    <a href="#usage" class="btn btn-outline"><i class="fas fa-book" aria-hidden="true"></i> Usage</a>
+                </div>
+            </div>
+            <div class="hero-visual reveal">
+                <svg viewBox="0 0 460 280" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram: an anonymous target skeleton is matched against a known reference skeleton by a linkage classifier">
+                    <!-- target skeleton -->
+                    <g class="st">
+                        <g class="skel-bone">
+                            <line x1="70" y1="46" x2="70" y2="62" stroke-width="1.5"/><line x1="70" y1="62" x2="70" y2="100" stroke-width="1.5"/>
+                            <line x1="70" y1="100" x2="70" y2="132" stroke-width="1.5"/><line x1="44" y1="66" x2="96" y2="66" stroke-width="1.5"/>
+                            <line x1="44" y1="66" x2="32" y2="94" stroke-width="1.5"/><line x1="32" y1="94" x2="24" y2="122" stroke-width="1.5"/>
+                            <line x1="52" y1="132" x2="88" y2="132" stroke-width="1.5"/>
+                            <line x1="52" y1="132" x2="48" y2="170" stroke-width="1.5"/><line x1="48" y1="170" x2="44" y2="208" stroke-width="1.5"/>
+                            <line x1="88" y1="132" x2="92" y2="170" stroke-width="1.5"/><line x1="92" y1="170" x2="96" y2="208" stroke-width="1.5"/>
+                        </g>
+                        <g class="skel-bone skel-arm" style="transform-origin:96px 66px">
+                            <line x1="96" y1="66" x2="112" y2="92" stroke-width="1.5" stroke="var(--skel-target)"/>
+                            <line x1="112" y1="92" x2="120" y2="120" stroke-width="1.5" stroke="var(--skel-target)"/>
+                        </g>
+                        <g class="skel-joint">
+                            <circle cx="70" cy="40" r="7"/><circle cx="70" cy="62" r="2.6"/><circle cx="70" cy="100" r="2.6"/><circle cx="70" cy="132" r="2.6"/>
+                            <circle cx="44" cy="66" r="2.6"/><circle cx="96" cy="66" r="2.6"/><circle cx="32" cy="94" r="2.6"/><circle cx="24" cy="122" r="2.6"/>
+                            <circle cx="112" cy="92" r="2.6"/><circle cx="120" cy="120" r="2.6"/>
+                            <circle cx="52" cy="132" r="2.6"/><circle cx="88" cy="132" r="2.6"/>
+                            <circle cx="48" cy="170" r="2.6"/><circle cx="44" cy="208" r="2.6"/><circle cx="92" cy="170" r="2.6"/><circle cx="96" cy="208" r="2.6"/>
+                        </g>
+                        <text x="70" y="238" class="skel-label" fill="var(--skel-target)" text-anchor="middle">Target s<tspan font-size="8" dy="2">T</tspan></text>
+                        <text x="70" y="254" class="skel-label" fill="var(--text-faint)" text-anchor="middle" style="text-transform:none;font-weight:400">anonymous</text>
+                    </g>
+
+                    <!-- reference skeleton -->
+                    <g class="sr">
+                        <g class="skel-bone">
+                            <line x1="390" y1="46" x2="390" y2="62" stroke-width="1.5"/><line x1="390" y1="62" x2="390" y2="100" stroke-width="1.5"/>
+                            <line x1="390" y1="100" x2="390" y2="132" stroke-width="1.5"/><line x1="364" y1="66" x2="416" y2="66" stroke-width="1.5"/>
+                            <line x1="416" y1="66" x2="428" y2="94" stroke-width="1.5"/><line x1="428" y1="94" x2="436" y2="122" stroke-width="1.5"/>
+                            <line x1="372" y1="132" x2="408" y2="132" stroke-width="1.5"/>
+                            <line x1="372" y1="132" x2="368" y2="170" stroke-width="1.5"/><line x1="368" y1="170" x2="364" y2="208" stroke-width="1.5"/>
+                            <line x1="408" y1="132" x2="412" y2="170" stroke-width="1.5"/><line x1="412" y1="170" x2="416" y2="208" stroke-width="1.5"/>
+                        </g>
+                        <g class="skel-bone skel-arm" style="transform-origin:364px 66px">
+                            <line x1="364" y1="66" x2="348" y2="92" stroke-width="1.5" stroke="var(--skel-ref)"/>
+                            <line x1="348" y1="92" x2="340" y2="120" stroke-width="1.5" stroke="var(--skel-ref)"/>
+                        </g>
+                        <g class="skel-joint">
+                            <circle cx="390" cy="40" r="7"/><circle cx="390" cy="62" r="2.6"/><circle cx="390" cy="100" r="2.6"/><circle cx="390" cy="132" r="2.6"/>
+                            <circle cx="364" cy="66" r="2.6"/><circle cx="416" cy="66" r="2.6"/><circle cx="428" cy="94" r="2.6"/><circle cx="436" cy="122" r="2.6"/>
+                            <circle cx="348" cy="92" r="2.6"/><circle cx="340" cy="120" r="2.6"/>
+                            <circle cx="372" cy="132" r="2.6"/><circle cx="408" cy="132" r="2.6"/>
+                            <circle cx="368" cy="170" r="2.6"/><circle cx="364" cy="208" r="2.6"/><circle cx="412" cy="170" r="2.6"/><circle cx="416" cy="208" r="2.6"/>
+                        </g>
+                        <text x="390" y="238" class="skel-label" fill="var(--skel-ref)" text-anchor="middle">Reference s<tspan font-size="8" dy="2">R</tspan></text>
+                        <text x="390" y="254" class="skel-label" fill="var(--text-faint)" text-anchor="middle" style="text-transform:none;font-weight:400">known identity</text>
+                    </g>
+
+                    <!-- linkage -->
+                    <line class="link-dash" x1="146" y1="124" x2="196" y2="124" stroke="var(--text-faint)" stroke-width="1.5"/>
+                    <line class="link-dash" x1="314" y1="124" x2="264" y2="124" stroke="var(--text-faint)" stroke-width="1.5"/>
+                    <rect x="196" y="98" width="68" height="52" rx="10" fill="var(--accent-subtle)" stroke="var(--accent-border)"/>
+                    <text x="230" y="119" text-anchor="middle" fill="var(--accent)" style="font-family:var(--font-body);font-size:11px;font-weight:600">Matching</text>
+                    <text x="230" y="134" text-anchor="middle" fill="var(--accent)" style="font-family:var(--font-body);font-size:11px;font-weight:600">Classifier</text>
+                    <text x="230" y="82" text-anchor="middle" fill="var(--text-faint)" class="skel-label match-pulse">Same person?</text>
+                    <text x="230" y="176" text-anchor="middle" fill="var(--accent)" style="font-family:var(--font-mono);font-size:12px">F&#8321; 0.7427</text>
+                </svg>
+            </div>
+        </section>
+
+        <div class="stats-bar">
+            <div class="stats-grid reveal">
+                <div class="stat-item">
+                    <div class="stat-number">0.7427</div>
+                    <div class="stat-change"><i class="fas fa-arrow-up" aria-hidden="true"></i> +0.0851 over random forest</div>
+                    <div class="stat-label">F-1 score linking raw skeletons</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">66 / 60</div>
+                    <div class="stat-change"><i class="fas fa-user-secret" aria-hidden="true"></i> never seen in training</div>
+                    <div class="stat-label">Unseen actors / action classes at test</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">94.25%</div>
+                    <div class="stat-change"><i class="fas fa-arrow-down" aria-hidden="true"></i> to 4.55% after anonymization</div>
+                    <div class="stat-label">Action recognition accuracy on raw data</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <section id="overview" class="section">
+            <p class="section-label reveal">Overview</p>
+            <h2 class="section-title reveal rd1">Anonymous skeletons still name you</h2>
+            <p class="section-desc reveal rd2">Motion capture in VR strips away face, voice, and appearance, so the resulting skeleton sequence is often treated as anonymous. It still encodes body measurements, gait, and movement patterns &mdash; personally identifiable information an adversary can link back to a person using nothing but public video.</p>
+
+            <div class="fg reveal">
+                <div class="fc">
+                    <div class="fdot rose"></div>
+                    <h3>Linkage, not classification</h3>
+                    <p>Prior re-identification models predict an ID from a fixed roster. LAN instead answers a yes/no matching question, so it applies to individuals the model has never seen.</p>
+                </div>
+                <div class="fc">
+                    <div class="fdot violet"></div>
+                    <h3>Semantic-guided encoding</h3>
+                    <p>Two weight-sharing encoders combine GCNs over joints with CNNs over frames, injecting joint-type and frame-index semantics to compress PII into a low-dimensional embedding.</p>
+                </div>
+                <div class="fc">
+                    <div class="fdot amber"></div>
+                    <h3>Generalizes past training</h3>
+                    <p>Trained on NTU60 and evaluated on the 66 actors and 60 action classes of NTU120 that are held out entirely from training.</p>
+                </div>
+                <div class="fc">
+                    <div class="fdot teal"></div>
+                    <h3>Retargeting as defense</h3>
+                    <p>Casting motion onto a dummy skeleton removes spatial PII without adversarial training against a specific attacker &mdash; but the utility cost is steep.</p>
+                </div>
+            </div>
+
+            <h3 class="sub-h reveal">Threat model</h3>
+            <div class="tm reveal">
+                <div class="tmc a">
+                    <div class="tmi"><i class="fas fa-vr-cardboard" aria-hidden="true"></i></div>
+                    <h4>Target</h4>
+                    <p>An anonymized skeleton sequence <span class="tnum">s<sub>T</sub></span> visualized in a shared VR space. No identity label is attached.</p>
+                </div>
+                <div class="tmc b">
+                    <div class="tmi"><i class="fas fa-video" aria-hidden="true"></i></div>
+                    <h4>Reference</h4>
+                    <p>A skeleton sequence <span class="tnum">s<sub>R</sub></span> the adversary extracts from public video, where the identity is known.</p>
+                </div>
+                <div class="tmc c">
+                    <div class="tmi"><i class="fas fa-link" aria-hidden="true"></i></div>
+                    <h4>Goal</h4>
+                    <p>Decide whether the two sequences come from the same individual. A single match deanonymizes the target.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <section id="method" class="section">
+            <p class="section-label reveal">Method</p>
+            <h2 class="section-title reveal rd1">Two encoders, one matching classifier</h2>
+            <p class="section-desc reveal rd2">LAN is built on the structure of a Siamese network. Semantic-Guided Encoders <span class="tnum">E<sub>T</sub></span> and <span class="tnum">E<sub>R</sub></span> extract PII embeddings from the target and reference sequences; the matching classifier compares them and emits a binary decision.</p>
+
+            <div class="arch-d reveal">
+                <div class="arch-flow">
+                    <div class="acol">
+                        <div class="ab inp">Target s<sub>T</sub><small>M joints &times; N frames</small></div>
+                        <div class="ab inp">Reference s<sub>R</sub><small>known identity</small></div>
+                    </div>
+                    <span class="aarr" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                    <div class="acol">
+                        <div class="ab dr">DR<small>position + velocity</small></div>
+                        <div class="ab dr">DR<small>position + velocity</small></div>
+                    </div>
+                    <span class="aarr" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                    <div class="acol">
+                        <div class="ab jm">Joint-level<small>GCN &times; 3</small></div>
+                        <div class="ab jm">Joint-level<small>GCN &times; 3</small></div>
+                    </div>
+                    <span class="aarr" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                    <div class="acol">
+                        <div class="ab fm">Frame-level<small>SMP &rarr; CNN &rarr; TMP</small></div>
+                        <div class="ab fm">Frame-level<small>SMP &rarr; CNN &rarr; TMP</small></div>
+                    </div>
+                    <span class="aarr" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                    <div class="acol">
+                        <div class="ab emb">e<sub>T</sub><small>embedding</small></div>
+                        <div class="ab emb">e<sub>R</sub><small>embedding</small></div>
+                    </div>
+                    <span class="aarr" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                    <div class="ab clf">Matching<br>Classifier C<small>1D conv &rarr; BN &rarr; FC &times; 3</small></div>
+                    <span class="aarr" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+                    <div class="ab out">y &isin; {0,1}<small>sigmoid</small></div>
+                </div>
+                <p class="shared-sem">shared high-level semantics: joint type &nbsp;&middot;&nbsp; frame index</p>
+                <p class="arch-cap">The two Semantic-Guided Encoders share the joint-type and frame-index embeddings, so target and reference sequences are projected into the same PII space.</p>
+            </div>
+
+            <h3 class="sub-h reveal">Encoder components</h3>
+            <div class="cg reveal">
+                <div class="cc">
+                    <span class="ct amber">DR</span>
+                    <h4>Dynamics Representation</h4>
+                    <p>Each joint is described by its 3D position <span class="tnum">p</span> and velocity <span class="tnum">v = p<sub>n</sub> &minus; p<sub>n&minus;1</sub></span>. Both pass through two FC + ReLU layers and are fused by summation.</p>
+                </div>
+                <div class="cc">
+                    <span class="ct violet">JM</span>
+                    <h4>Joint-level Module</h4>
+                    <p>Joint-type semantics are concatenated onto the dynamics. An adjacency matrix is learned from embedded-space affinities, then three residual graph convolutions capture within-frame joint correlations.</p>
+                </div>
+                <div class="cc">
+                    <span class="ct teal">FM</span>
+                    <h4>Frame-level Module</h4>
+                    <p>Frame-index semantics are added, spatial max-pooling collapses joints, two CNN layers model temporal dependencies, and temporal max-pooling yields the sequence-level embedding.</p>
+                </div>
+                <div class="cc">
+                    <span class="ct rose">C</span>
+                    <h4>Matching Classifier</h4>
+                    <p>A 1D convolution over the concatenated embeddings, two batch-norm layers, and three fully connected layers ending in a sigmoid that predicts same / different person.</p>
+                </div>
+            </div>
+
+            <h3 class="sub-h reveal">Training</h3>
+            <div class="sg reveal">
+                <div class="sc">
+                    <div class="sn">01</div>
+                    <h4>Pre-train the encoders for identity</h4>
+                    <div class="sm">
+                        <div class="smod tv">JM</div><div class="smod tt">FM</div><div class="smod ta">ID head</div>
+                    </div>
+                    <p class="si">Each SGE is trained alone with a fully connected softmax head that predicts personal ID. The learned embeddings already capture PII correlations within and across frames.</p>
+                </div>
+                <div class="sc">
+                    <div class="sn">02</div>
+                    <h4>Train end-to-end for linkage</h4>
+                    <div class="sm">
+                        <div class="smod tv">E<sub>T</sub></div><div class="smod tt">E<sub>R</sub></div><div class="smod ta">C</div>
+                    </div>
+                    <p class="si">Both encoders and the classifier are optimized jointly under a binary cross-entropy loss <span class="tnum">CE(y, C(E<sub>T</sub>(s<sub>T</sub>), E<sub>R</sub>(s<sub>R</sub>)))</span>. Unfreezing the encoders adds an average of <strong>2% F-1</strong> over keeping them frozen.</p>
+                </div>
+            </div>
+
+            <div class="fgrid reveal">
+                <div class="fcard rose">
+                    <h4>Positive sampling</h4>
+                    <p>A target sequence is paired with another sequence from the same actor and labelled <span class="tnum">y = 1</span>.</p>
+                </div>
+                <div class="fcard violet">
+                    <h4>Negative sampling</h4>
+                    <p>A target sequence is paired with a sequence from any other actor and labelled <span class="tnum">y = 0</span>. Sampling rates are balanced across both classes.</p>
+                </div>
+            </div>
+
+            <figure class="fig reveal" style="margin-top:2.5rem">
+                <div class="fig-plate"><img src="assets/lan-framework.png" alt="LAN framework diagram: target and reference skeleton sequences each pass through a Semantic Guided Encoder containing dynamics representation, a joint-level GCN module and a frame-level CNN module, producing embeddings that are concatenated and fed to a matching classifier for binary classification." loading="lazy" width="2064" height="596"></div>
+                <figcaption><strong>Figure 1.</strong> The framework of LAN. Two Semantic-Guided Encoders share high-level semantics and feed a matching classifier.</figcaption>
+            </figure>
+        </section>
+
+        <div class="divider"></div>
+
+        <section id="results" class="section">
+            <p class="section-label reveal">Results</p>
+            <h2 class="section-title reveal rd1">A measurable privacy leak</h2>
+            <p class="section-desc reveal rd2">All experiments use NTU RGB+D 60+120. LAN is trained on the 40 actors of NTU60 and tested on the 66 unseen actors of NTU120, giving 32,000 training and 52,800 testing samples at the default sampling size of 400 per target actor.</p>
+
+            <div class="tabs-nav reveal" role="tablist">
+                <button class="tab-btn active" role="tab" aria-selected="true" aria-controls="t-attack" id="tb-attack" onclick="stab(event,'t-attack')">Attack comparison</button>
+                <button class="tab-btn" role="tab" aria-selected="false" aria-controls="t-anon" id="tb-anon" onclick="stab(event,'t-anon')">Against anonymizers</button>
+                <button class="tab-btn" role="tab" aria-selected="false" aria-controls="t-util" id="tb-util" onclick="stab(event,'t-util')">Utility</button>
+                <button class="tab-btn" role="tab" aria-selected="false" aria-controls="t-scale" id="tb-scale" onclick="stab(event,'t-scale')">Scalability</button>
+            </div>
+
+            <div class="tp active" id="t-attack" role="tabpanel" aria-labelledby="tb-attack">
+                <div class="tw">
+                    <div class="tsc">
+                    <table>
+                        <caption class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Table 1: Linkage attack performance comparison</caption>
+                        <thead><tr><th scope="col">Attack model</th><th scope="col">Precision</th><th scope="col">Recall</th><th scope="col">F-1 score</th></tr></thead>
+                        <tbody>
+                            <tr class="hr"><td><strong>LAN (ours)</strong></td><td class="tnum">0.6830</td><td class="tnum">0.8138</td><td class="tnum hl">0.7427</td></tr>
+                            <tr><td>MLP</td><td class="tnum">0.7059</td><td class="tnum">0.6852</td><td class="tnum">0.6954</td></tr>
+                            <tr><td>Random forest</td><td class="tnum">0.7346</td><td class="tnum">0.7708</td><td class="tnum">0.6576</td></tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                <p class="tcap"><strong>Table 1.</strong> LAN beats the MLP baseline by 4.73 points of F-1 and the random forest by 8.51 points, showing that semantic-guided embeddings capture PII in joint correlations that flat frame-wise features miss.</p>
+                <div class="fgrid">
+                    <div class="fcard rose">
+                        <h4>Recall drives the gap</h4>
+                        <p>LAN reaches 0.8138 recall against 0.6852 for the MLP. It misses far fewer true matches, which is the operative risk for a person being deanonymized.</p>
+                    </div>
+                    <div class="fcard violet">
+                        <h4>End-to-end training helps</h4>
+                        <p>Fine-tuning the pre-trained SGE layers during linkage training yields an average 2% higher F-1 than freezing them after identity pre-training.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tp" id="t-anon" role="tabpanel" aria-labelledby="tb-anon">
+                <div class="tw">
+                    <div class="tsc">
+                    <table>
+                        <thead><tr><th scope="col">Data for visualization</th><th scope="col">Precision</th><th scope="col">Recall</th><th scope="col">F-1 score</th></tr></thead>
+                        <tbody>
+                            <tr class="hr"><td><strong>Raw data</strong></td><td class="tnum">0.6830</td><td class="tnum">0.8138</td><td class="tnum hl">0.7427</td></tr>
+                            <tr><td>UNet</td><td class="tnum">0.5000</td><td class="tnum">1.0000</td><td class="tnum">0.6667</td></tr>
+                            <tr><td>ResNet</td><td class="tnum">0.5000</td><td class="tnum">1.0000</td><td class="tnum">0.6667</td></tr>
+                            <tr><td>Classical MR</td><td class="tnum">0.5004</td><td class="tnum">0.9963</td><td class="tnum">0.6662</td></tr>
+                            <tr><td>Deep MR</td><td class="tnum">0.5057</td><td class="tnum">0.8977</td><td class="tnum">0.6469</td></tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                <p class="tcap"><strong>Table 2.</strong> A perfect anonymizer drives the attack to predict that every pair matches &mdash; precision 0.5 with recall 1.0. All four anonymizers land at or near that point, so all four effectively hide PII from LAN.</p>
+                <div class="fgrid">
+                    <div class="fcard teal">
+                        <h4>Anonymizers do hide PII</h4>
+                        <p>UNet and ResNet reach exactly precision 0.5 / recall 1.0: LAN believes every actor is the same person. Classical and deep motion retargeting are within a fraction of a point.</p>
+                    </div>
+                    <div class="fcard amber">
+                        <h4>LAN leans on spatial cues</h4>
+                        <p>Because retargeting alters spatial structure while preserving timing, the collapse in performance indicates LAN weights spatial information more heavily than temporal &mdash; matching how humans recognize others by appearance rather than movement.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tp" id="t-util" role="tabpanel" aria-labelledby="tb-util">
+                <div class="tw">
+                    <div class="tsc">
+                    <table>
+                        <thead><tr><th scope="col">Data for visualization</th><th scope="col">Action recognition accuracy</th><th scope="col">Linkage F-1</th><th scope="col">Note</th></tr></thead>
+                        <tbody>
+                            <tr class="hr"><td><strong>Raw data</strong></td><td class="tnum hl">94.25%</td><td class="tnum">0.7427</td><td>Full utility, full leakage</td></tr>
+                            <tr><td>Deep MR</td><td class="tnum">4.55%</td><td class="tnum">0.6469</td><td>Best utility of the anonymizers</td></tr>
+                            <tr><td>Classical MR</td><td class="tnum">3.20%</td><td class="tnum">0.6662</td><td>No training required</td></tr>
+                            <tr><td>UNet</td><td class="tnum">0.84%</td><td class="tnum">0.6667</td><td>&asymp; random guessing (1/120)</td></tr>
+                            <tr><td>ResNet</td><td class="tnum">0.84%</td><td class="tnum">0.6667</td><td>&asymp; random guessing (1/120)</td></tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                <p class="tcap">Action recognition utility measured with SGN on NTU60+120. The high utility reported for adversarial anonymizers elsewhere only holds against the utility adversary they were trained with; on unseen actors and unseen action classes it disappears.</p>
+                <div class="fgrid">
+                    <div class="fcard rose">
+                        <h4>The trade-off is not solved</h4>
+                        <p>Deep MR retains the most action information yet leaks the least, and even it drops from 94.25% to 4.55%. Every anonymizer tested pays a large utility cost for its privacy gain.</p>
+                    </div>
+                    <div class="fcard teal">
+                        <h4>Retargeting generalizes</h4>
+                        <p>Unlike adversarial training, motion retargeting is not tied to specific characters, actions, or attack models, which makes it a complementary and broadly applicable defense.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tp" id="t-scale" role="tabpanel" aria-labelledby="tb-scale">
+                <div class="igrid">
+                    <figure class="fig">
+                        <div class="fig-plate"><img src="assets/scalability.png" alt="Line chart: F-1 score and runtime in minutes plotted against sampling size per actor from 100 to 400. Both F-1 score and runtime increase with sampling size." loading="lazy"></div>
+                        <figcaption><strong>Figure 2.</strong> Scalability of LAN as the sampling size per actor varies from 100 to 400.</figcaption>
+                    </figure>
+                    <div>
+                        <div class="fgrid" style="grid-template-columns:1fr;margin-top:0">
+                            <div class="fcard rose">
+                                <h4>More data, higher F-1</h4>
+                                <p>F-1 rises monotonically with the number of positive and negative pairs sampled per actor, and runtime rises with it.</p>
+                            </div>
+                            <div class="fcard amber">
+                                <h4>Cheap at a quarter of the data</h4>
+                                <p>At a sampling size of 100 &mdash; 25% of the default setting &mdash; LAN still reaches <strong>0.7136 F-1</strong> while taking only <strong>20%</strong> of the default runtime.</p>
+                            </div>
+                            <div class="fcard violet">
+                                <h4>Low barrier for an adversary</h4>
+                                <p>The attack does not require the adversary to accumulate a large corpus of skeleton data before it becomes effective.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <section id="defense" class="section">
+            <p class="section-label reveal">Defense</p>
+            <h2 class="section-title reveal rd1">Anonymization through motion retargeting</h2>
+            <p class="section-desc reveal rd2">Hiding the identity label is not enough &mdash; the skeleton itself carries indirect PII. Instead of adversarially training against a known attacker, we cast the raw motion onto a dummy character, transforming the spatial structure while leaving the motion pattern largely intact.</p>
+
+            <div class="cg reveal">
+                <div class="cc">
+                    <span class="ct teal">CMR</span>
+                    <h4>Classical retargeting</h4>
+                    <p>Inverse and forward kinematics align the dummy skeleton's joints with the target's, then map the motion by casting joint rotations. No training and low evaluation cost.</p>
+                </div>
+                <div class="cc">
+                    <span class="ct violet">DMR</span>
+                    <h4>Deep retargeting</h4>
+                    <p>A neural network decomposes the sequence into skeleton-agnostic dynamic motion and static skeleton, recombines with a new skeleton, and decodes the retargeted sequence.</p>
+                </div>
+                <div class="cc">
+                    <span class="ct amber">UNet / ResNet</span>
+                    <h4>Adversarial anonymizers</h4>
+                    <p>Baselines from prior work that perturb the skeleton to confuse ID and gender classifiers while preserving a chosen action recognizer's performance.</p>
+                </div>
+                <div class="cc">
+                    <span class="ct rose">Limits</span>
+                    <h4>Why adversarial falls short</h4>
+                    <p>ID classification only covers identities seen during training, the defense is confined to seen actions and attackers, and only the included utility model is preserved.</p>
+                </div>
+            </div>
+
+            <div class="fgrid reveal">
+                <div class="fcard teal">
+                    <h4>Dummy skeleton construction</h4>
+                    <p>The classical approach retargets onto an average skeleton computed over all actors in NTU60+120 by averaging Euclidean distances along the joint paths. Deep MR uses a random actor as the dummy.</p>
+                </div>
+                <div class="fcard amber">
+                    <h4>Open problem</h4>
+                    <p>Deep MR has the highest utility and the lowest privacy leakage of the anonymizers, but the absolute utility is still low. Improving anonymizer utility without conceding privacy remains future work.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <section id="usage" class="section">
+            <p class="section-label reveal">Usage</p>
+            <h2 class="section-title reveal rd1">Running the code</h2>
+            <p class="section-desc reveal rd2">Everything was developed in Jupyter notebooks and exported to standalone Python files. Preprocessed pickles and trained checkpoints are linked from the README in each directory.</p>
+
+            <h3 class="sub-h reveal">Repository layout</h3>
+            <div class="tree reveal"><b>Linkage Attack/</b>          <i># the attack proposed in this paper</i>
+  SGN Based Linkage Attack/   <i># LAN — main model + evaluation CLI</i>
+  RF Based Linkage Attack/    <i># random forest baseline (frame-wise and video-wise)</i>
+<b>Attacking Models/</b>        <i># person re-identification attackers</i>
+  SGN Attack Model/           <i># SGN-based ID + action classification</i>
+  RF Attack Model/            <i># random forest baseline</i>
+<b>Defense Models/</b>          <i># anonymizers</i>
+  Motion Retargeting/         <i># classical MR via BVH conversion</i>
+  Mean Skeleton/              <i># average dummy skeleton construction</i>
+<b>Skeleton Info/</b>           <i># NTU .skeleton parsing, joint statistics, splits</i>
+<b>Figures/</b>                 <i># figures used in the paper</i></div>
+
+            <h3 class="sub-h reveal">Evaluate the linkage attack</h3>
+            <div class="cb reveal">
+                <button class="cpb" onclick="cpc(this)" aria-label="Copy code"><i class="fas fa-copy" aria-hidden="true"></i></button>
+<pre>cd "Linkage Attack/SGN Based Linkage Attack"
+
+<span class="cmt"># evaluate a trained LAN checkpoint over 5 runs</span>
+python linkage_attack_eval.py \
+    --model models/unfrozen_69.5acc.pt \
+    --data path/to/X.pkl \
+    --samples_same 200 --samples_diff 200 \
+    --segments 20 --max_frames 300 \
+    --runs 5 --compute_auc --device cuda</pre>
+            </div>
+
+            <h3 class="sub-h reveal">Run the re-identification attackers</h3>
+            <div class="cb reveal">
+                <button class="cpb" onclick="cpc(this)" aria-label="Copy code"><i class="fas fa-copy" aria-hidden="true"></i></button>
+<pre><span class="cmt"># SGN attack model — raw data, with action classification utility</span>
+cd "Attacking Models/SGN Attack Model"
+python sgn_attack.py --data data/test_X.pkl --action_data data/X_action.pkl
+
+<span class="cmt"># same model against UNet/ResNet anonymized data</span>
+python sgn_attack.py --data X_unet.pkl --action_data X_unet_action.pkl --source skele_anon
+
+<span class="cmt"># random forest baseline</span>
+cd "../RF Attack Model"
+python rf_attack.py --model clf.pkl --data X.pkl --labels Genders.csv</pre>
+            </div>
+
+            <h3 class="sub-h reveal">Data format</h3>
+            <div class="cb reveal">
+                <button class="cpb" onclick="cpc(this)" aria-label="Copy code"><i class="fas fa-copy" aria-hidden="true"></i></button>
+<pre><span class="cmt"># X.pkl — dict keyed by actor identifier</span>
+{
+  'P001': np.ndarray,   <span class="cmt"># (videos, 300 frames, 150 = 75 joints x 2 actors)</span>
+  'P002': np.ndarray,
+  ...
+}
+
+<span class="cmt"># X_action.pkl — same layout, keyed by action class 'A001' ... 'A120'</span></pre>
+            </div>
+            <p class="tcap">Raw <span class="tnum">.skeleton</span> files come from the <a href="https://rose1.ntu.edu.sg/dataset/actionRecognition/" target="_blank" rel="noopener">NTU RGB+D dataset</a>; parsing code lives in <span class="tnum">Skeleton Info/</span>. Preprocessed pickles and checkpoints are on <a href="https://drive.google.com/drive/folders/1aO2MU_HQDbxHgdZy6HaMFS0REc7DXtKQ?usp=sharing" target="_blank" rel="noopener">Google Drive</a>.</p>
+
+            <h3 class="sub-h reveal">Implementation details</h3>
+            <div class="spg reveal">
+                <div class="spc">
+                    <h4>Dataset</h4>
+                    <p><strong>NTU RGB+D 60+120</strong>, captured with Kinect v2. 40 actors / 60 actions in NTU60, plus 66 new actors and 60 new actions in NTU120. <strong>25 joints</strong>, position information only.</p>
+                </div>
+                <div class="spc">
+                    <h4>LAN training</h4>
+                    <p>Trained on the full NTU60 split. Default sampling of <strong>400 per target actor</strong> for both positive and negative pairs &rarr; <strong>32,000</strong> training and <strong>52,800</strong> testing samples.</p>
+                </div>
+                <div class="spc">
+                    <h4>Random forest baseline</h4>
+                    <p>Frame-wise, trained on <strong>1.2M</strong> samples and tested on <strong>2.07M</strong>. Hyperparameter tuning selected <span class="tnum">n_estimators = 100</span> and <span class="tnum">max_depth = 10</span>.</p>
+                </div>
+                <div class="spc">
+                    <h4>MLP baseline</h4>
+                    <p>Four layers of sizes <span class="tnum">[1000, 100, 100, 1]</span> over a flattened 50-frame sequence. Trained on <strong>400,000</strong> samples, tested on <strong>690,000</strong>.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <section id="citation" class="section">
+            <p class="section-label reveal">Citation</p>
+            <h2 class="section-title reveal rd1">Cite this work</h2>
+            <p class="section-desc reveal rd2">If you use LAN or this codebase in your research, please cite our CIKM 2023 paper.</p>
+            <div class="cit-block reveal rd3">
+                <button class="cit-copy" onclick="cpb(this)"><i class="fas fa-copy" aria-hidden="true"></i> Copy BibTeX</button>
+<pre id="bib">@inproceedings{carr2023linkage,
+    author    = {Carr, Thomas and Lu, Aidong and Xu, Depeng},
+    title     = {Linkage Attack on Skeleton-based Motion Visualization},
+    booktitle = {Proceedings of the 32nd ACM International Conference
+                 on Information and Knowledge Management (CIKM '23)},
+    year      = {2023},
+    pages     = {3758--3762},
+    publisher = {Association for Computing Machinery},
+    address   = {New York, NY, USA},
+    doi       = {10.1145/3583780.3615263}
+}</pre>
+                <div class="pub-d">
+                    <p><strong>Conference:</strong> 32nd ACM International Conference on Information and Knowledge Management (CIKM '23), October 21&ndash;25, 2023, Birmingham, United Kingdom</p>
+                    <p><strong>DOI:</strong> 10.1145/3583780.3615263</p>
+                    <p style="margin-top:0.5rem"><a href="https://dl.acm.org/doi/10.1145/3583780.3615263" target="_blank" rel="noopener" style="font-weight:500"><i class="fas fa-external-link-alt" style="font-size:0.75rem" aria-hidden="true"></i> View on the ACM Digital Library</a></p>
+                </div>
+            </div>
+
+            <h3 class="sub-h reveal">Related work</h3>
+            <div class="rg reveal">
+                <a class="rc" href="https://pmr.thomasc.tech/" target="_blank" rel="noopener">
+                    <div class="rv">ICCV 2025</div>
+                    <h4>Privacy-centric Motion Retargeting</h4>
+                    <p>Anonymizing skeleton motion while preserving action utility through adversarial deep learning &mdash; the follow-up to the defense studied here.</p>
+                </a>
+                <a class="rc" href="https://tmr.thomasc.tech/" target="_blank" rel="noopener">
+                    <div class="rv">Project</div>
+                    <h4>DisentangledTMR</h4>
+                    <p>Privacy-preserving skeleton motion retargeting with factorized transformers.</p>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer><div class="footer-inner">
+        <div class="fl">
+            <a href="https://github.com/Thomasc33/Linkage-Attack" target="_blank" rel="noopener"><i class="fab fa-github" aria-hidden="true"></i> GitHub</a>
+            <a href="https://dl.acm.org/doi/10.1145/3583780.3615263" target="_blank" rel="noopener"><i class="fas fa-file-alt" aria-hidden="true"></i> Paper</a>
+            <a href="https://rose1.ntu.edu.sg/dataset/actionRecognition/" target="_blank" rel="noopener"><i class="fas fa-database" aria-hidden="true"></i> NTU RGB+D</a>
+            <a href="mailto:dxu7@uncc.edu"><i class="fas fa-envelope" aria-hidden="true"></i> Contact</a>
+        </div>
+        <p class="fc-copy">&copy; 2023 Thomas Carr, Aidong Lu, Depeng Xu &middot; University of North Carolina at Charlotte</p>
+        <p class="fund">This work was supported in part by UNC Charlotte startup fund and NSF grant 1840080.</p>
+    </div></footer>
+
+    <script>
+    // Theme
+    function gpt(){var s=localStorage.getItem('lan-theme');if(s)return s;return window.matchMedia('(prefers-color-scheme:light)').matches?'light':'dark'}
+    function st(t){document.documentElement.setAttribute('data-theme',t);localStorage.setItem('lan-theme',t);var i=t==='light'?'fa-moon':'fa-sun';document.getElementById('ti').className='fas '+i;document.getElementById('ti2').className='fas '+i}
+    st(gpt());
+    document.getElementById('dt').onclick=function(){st(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light')};
+    document.getElementById('mobile-theme').onclick=function(){st(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light')};
+
+    // Mobile menu
+    var mm=document.getElementById('mmenu'),mi=document.getElementById('mi'),mt=document.getElementById('mt');
+    mt.onclick=function(){var o=mm.classList.toggle('open');mi.className=o?'fas fa-times':'fas fa-bars';mt.setAttribute('aria-expanded',o?'true':'false')};
+    function cmm(){mm.classList.remove('open');mi.className='fas fa-bars';mt.setAttribute('aria-expanded','false')}
+
+    // Tabs
+    function stab(e,id){var s=e.currentTarget.closest('section');s.querySelectorAll('.tp').forEach(function(p){p.classList.remove('active')});s.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-selected','false')});document.getElementById(id).classList.add('active');e.currentTarget.classList.add('active');e.currentTarget.setAttribute('aria-selected','true')}
+
+    // Copy code
+    function cpc(b){var p=b.closest('.cb').querySelector('pre');navigator.clipboard.writeText(p.textContent).then(function(){b.innerHTML='<i class="fas fa-check"></i>';b.style.color='var(--accent)';b.style.borderColor='var(--accent)';setTimeout(function(){b.innerHTML='<i class="fas fa-copy"></i>';b.style.color='';b.style.borderColor=''},2000)})}
+
+    // Copy bibtex
+    function cpb(b){navigator.clipboard.writeText(document.getElementById('bib').textContent).then(function(){b.innerHTML='<i class="fas fa-check"></i> Copied!';b.style.color='var(--accent)';b.style.borderColor='var(--accent)';setTimeout(function(){b.innerHTML='<i class="fas fa-copy"></i> Copy BibTeX';b.style.color='';b.style.borderColor=''},2000)})}
+
+    // Nav scroll
+    var nav=document.getElementById('nav');
+    window.addEventListener('scroll',function(){nav.classList.toggle('scrolled',window.scrollY>40)},{passive:true});
+
+    // Scroll reveal
+    var ro=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('vis');ro.unobserve(e.target)}})},{threshold:0.08,rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.reveal').forEach(function(el){ro.observe(el)});
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){var h=this.getAttribute('href');if(h!=='#'&&h.startsWith('#')){e.preventDefault();var t=document.querySelector(h);if(t)t.scrollIntoView({behavior:'smooth'})}})});
+    </script>
+</body>
+</html>

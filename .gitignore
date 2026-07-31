@@ -1,5 +1,24 @@
+# Data
 *.pkl
 *.pickle
 External Repositories/
-.DS_Store
+
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+venv/
+env/
+.venv
+
+# IDEs / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Jekyll / GitHub Pages
+_site/
+.jekyll-cache/
+.jekyll-metadata
