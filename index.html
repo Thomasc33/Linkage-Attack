@@ -212,8 +212,12 @@
 
         /* FIGURES */
         .fig{background:var(--bg-surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:var(--transition-theme)}
-        .fig .fig-plate{background:#FFFFFF;padding:1.25rem}
-        .fig img{width:100%;height:auto}
+        .fig .fig-plate{background:#FFFFFF;padding:1.25rem;transition:background 0.4s ease}
+        .fig img{width:100%;height:auto;transition:filter 0.4s ease}
+        /* Paper figures are black-on-white line art. Inverting lightness and
+           rotating hue back keeps the original colors while killing the glare. */
+        [data-theme="dark"] .fig .fig-plate{background:#0E0E10}
+        [data-theme="dark"] .fig .fig-plate img{filter:invert(1) hue-rotate(180deg)}
         .fig figcaption{padding:0.875rem 1.25rem;font-size:0.8rem;color:var(--text-muted);line-height:1.55;border-top:1px solid var(--border);transition:var(--transition-theme)}
         .igrid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;margin:1.5rem 0;align-items:start}
         .fig.narrow{max-width:560px}
